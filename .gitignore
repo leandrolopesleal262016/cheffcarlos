@@ -1,0 +1,59 @@
+# Arquivos de bytecode Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Ambientes virtuais
+venv/
+env/
+ENV/
+.env
+.venv
+env.bak/
+venv.bak/
+
+# Arquivos de dados
+*.xlsx
+*.xls
+*.csv
+*.db
+*.sqlite3
+planilhas/*.xlsx
+
+# Logs
+*.log
+logs/
+
+# Arquivos de configuração local
+instance/
+.webassets-cache
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arquivos de IDE/editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Arquivos de distribuição/build
+dist/
+build/
+*.egg-info/
+
+# Arquivos temporários
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.pytest_cache/
+coverage.xml
+*.cover

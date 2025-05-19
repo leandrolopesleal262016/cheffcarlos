@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fechamento do Dia</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+    }
+    input[type="file"] {
+      display: block;
+      margin: 20px auto;
+    }
+    canvas {
+      margin: 20px auto;
+      display: block;
+      max-width: 90%;
+    }
+    #fechamento {
+      margin-top: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+    th {
+      background: #007BFF;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fechamento do Dia - Análise de Pedidos</h1>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" />
+
+  <canvas id="pedidosChart"></canvas>
+  <canvas id="valorChart"></canvas>
+  <canvas id="taxaChart"></canvas>
+
+  <div id="fechamento">
+    <h2>Resumo Diário</h2>
+    <table id="resumoTable">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Pedidos</th>
+          <th>Valor Total (R$)</th>
+          <th>Taxa de Entrega (R$)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    document.getElementById('fileInput').addEventListener('change', function (e) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+
+        const grouped = {};
+
+        json.forEach(row => {
+          const dataStr = new Date(row["DATA"]).toISOString().slice(0, 10);
+          const valorItens = parseFloat(row["VALOR DOS ITENS"]) || 0;
+          const taxaEntrega = parseFloat(row["TAXA DE ENTREGA"]) || 0;
+          const total = valorItens + taxaEntrega;
+
+          if (!grouped[dataStr]) {
+            grouped[dataStr] = { pedidos: 0, valor: 0, taxa: 0 };
+          }
+
+          grouped[dataStr].pedidos += 1;
+          grouped[dataStr].valor += total;
+          grouped[dataStr].taxa += taxaEntrega;
+        });
+
+        const labels = Object.keys(grouped).sort();
+        const pedidosData = labels.map(d => grouped[d].pedidos);
+        const valorData = labels.map(d => grouped[d].valor.toFixed(2));
+        const taxaData = labels.map(d => grouped[d].taxa.toFixed(2));
+
+        document.querySelector("#resumoTable tbody").innerHTML = labels.map((d, i) => `
+          <tr>
+            <td>${d}</td>
+            <td>${pedidosData[i]}</td>
+            <td>${valorData[i]}</td>
+            <td>${taxaData[i]}</td>
+          </tr>
+        `).join("");
+
+        // Limpar canvas existentes
+        document.querySelectorAll('canvas').forEach(canvas => {
+          if (canvas.chart) {
+            canvas.chart.destroy();
+          }
+        });
+
+        const drawChart = (ctxId, label, data, color) => {
+          const ctx = document.getElementById(ctxId);
+          ctx.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [{
+                label,
+                data,
+                backgroundColor: color
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: { title: { display: true, text: 'Data' }},
+                y: { title: { display: true, text: label }}
+              }
+            }
+          });
+        };
+
+        drawChart("pedidosChart", "Número de Pedidos", pedidosData, "#4caf50");
+        drawChart("valorChart", "Valor Total (R$)", valorData, "#2196f3");
+        drawChart("taxaChart", "Taxa de Entrega (R$)", taxaData, "#ff9800");
+      };
+
+      reader.readAsArrayBuffer(e.target.files[0]);
+    });
+  </script>
+</body>
+</html>
