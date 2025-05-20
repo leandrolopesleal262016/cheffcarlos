@@ -4,74 +4,273 @@
   <meta charset="UTF-8">
   <title>Fechamento de Caixa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Carregando Tailwind CSS diretamente do CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- Chart.js para os gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Estilos adicionais -->
+  <style>
+    /* Garantindo que os cards tenham uma altura mínima */
+    .card-min-height {
+      min-height: 120px;
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+  </style>
 </head>
-<body class="bg-light">
-  <div class="container py-5">
-    <h1 class="mb-4 text-center">📊 Fechamento de Caixa</h1>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <!-- Header/Menu -->
+  <header class="bg-gray-900 text-white py-4">
+    <div class="container mx-auto px-4">
+      <h1 class="text-2xl font-bold">Fechamento de Caixa</h1>
+    </div>
+  </header>
 
-    <div class="row text-center g-4">
-      <div class="col-md-3">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h6 class="card-title">Faturamento Bruto</h6>
-            <p class="display-6 text-primary">R$ {{ faturamento }}</p>
-          </div>
-        </div>
+  <!-- Conteúdo principal -->
+  <main class="flex-grow container mx-auto py-8 px-4">
+    <!-- Cards de resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Card Faturamento Bruto -->
+      <div class="bg-white rounded-lg shadow p-6 card-min-height">
+        <h2 class="text-gray-600 font-medium mb-2">Faturamento Bruto</h2>
+        <p class="text-3xl font-bold text-blue-500">R$ {{ faturamento }}</p>
       </div>
-      <div class="col-md-3">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h6 class="card-title">Taxas de Serviço</h6>
-            <p class="display-6 text-danger">R$ {{ taxas }}</p>
-          </div>
-        </div>
+      
+      <!-- Card Taxas de Serviço -->
+      <div class="bg-white rounded-lg shadow p-6 card-min-height">
+        <h2 class="text-gray-600 font-medium mb-2">Taxas de Serviço</h2>
+        <p class="text-3xl font-bold text-red-500">R$ {{ taxas }}</p>
       </div>
-      <div class="col-md-3">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h6 class="card-title">Incentivos</h6>
-            <p class="display-6 text-warning">R$ {{ incentivos }}</p>
-          </div>
-        </div>
+      
+      <!-- Card Incentivos -->
+      <div class="bg-white rounded-lg shadow p-6 card-min-height">
+        <h2 class="text-gray-600 font-medium mb-2">Incentivos</h2>
+        <p class="text-3xl font-bold text-yellow-500">R$ {{ incentivos }}</p>
       </div>
-      <div class="col-md-3">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h6 class="card-title">Lucro</h6>
-            <p class="display-6 text-success">R$ {{ lucro }}</p>
-          </div>
-        </div>
+      
+      <!-- Card Lucro -->
+      <div class="bg-white rounded-lg shadow p-6 card-min-height">
+        <h2 class="text-gray-600 font-medium mb-2">Lucro</h2>
+        <p class="text-3xl font-bold text-green-500">R$ {{ lucro }}</p>
       </div>
     </div>
 
-    <div class="mt-5">
-      <h4 class="mb-3">Faturamento por Dia</h4>
-      <canvas id="graficoPedidos"></canvas>
+    <!-- Cards de gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Gráfico de barras com resumo - Fechamento Semanal (maior, ocupa 2 colunas) -->
+      <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Fechamento Semanal</h2>
+        <div class="flex flex-col md:flex-row">
+          <!-- Gráfico à esquerda -->
+          <div class="w-full md:w-2/3 pr-0 md:pr-4">
+            <div class="chart-container">
+              <canvas id="graficoBarras"></canvas>
+            </div>
+          </div>
+          
+          <!-- Resumo à direita -->
+          <div class="w-full md:w-1/3 mt-6 md:mt-0 flex flex-col justify-center">
+            <div class="mb-4">
+              <h3 class="text-sm text-gray-500 mb-1">Faturamento Bruto</h3>
+              <p class="text-2xl font-semibold text-blue-500">R$ {{ faturamento }}</p>
+            </div>
+            <div class="mb-4">
+              <h3 class="text-sm text-gray-500 mb-1">Taxas de Serviço</h3>
+              <p class="text-2xl font-semibold text-red-500">R$ {{ taxas }}</p>
+            </div>
+            <div class="mb-4">
+              <h3 class="text-sm text-gray-500 mb-1">Incentivos</h3>
+              <p class="text-2xl font-semibold text-yellow-500">R$ {{ incentivos }}</p>
+            </div>
+            <div>
+              <h3 class="text-sm text-gray-500 mb-1">Lucro</h3>
+              <p class="text-2xl font-semibold text-green-500">R$ {{ lucro }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Gráfico de pizza - Distribuição do faturamento -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Distribuição de Valores</h2>
+        <div class="chart-container">
+          <canvas id="graficoPizza1"></canvas>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="bg-gray-900 text-white py-4 mt-8">
+    <div class="container mx-auto px-4 text-center">
+      <p>Desenvolvido por Leandro Leal 2025</p>
+    </div>
+  </footer>
 
   <script>
-    const ctx = document.getElementById('graficoPedidos');
-    const chart = new Chart(ctx, {
+    // Formatador para valores em reais
+    const formatadorMoeda = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+
+    // Cores para os gráficos - corrigidas conforme os cards
+    const coresDistribuicao = {
+      'Lucro Líquido': '#10B981', // Verde para Lucro
+      'Taxas de Serviço': '#EF4444', // Vermelho para Taxas
+      'Incentivos': '#F59E0B'  // Amarelo para Incentivos
+    };
+
+    // Gráfico de barras - Faturamento por dia
+    const ctxBarras = document.getElementById('graficoBarras');
+    const graficoBarras = new Chart(ctxBarras, {
       type: 'bar',
       data: {
         labels: {{ labels | tojson }},
         datasets: [{
-          label: 'R$ por dia',
+          label: 'Faturamento',
           data: {{ valores | tojson }},
-          borderWidth: 1,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)'
+          backgroundColor: [
+            'rgba(59, 130, 246, 0.8)',   // Azul
+            'rgba(239, 68, 68, 0.8)',     // Vermelho
+            'rgba(245, 158, 11, 0.8)',    // Amarelo
+            'rgba(16, 185, 129, 0.8)',    // Verde
+            'rgba(139, 92, 246, 0.8)',    // Roxo
+            'rgba(249, 115, 22, 0.8)',    // Laranja
+            'rgba(156, 163, 175, 0.8)'    // Cinza
+          ],
+          borderWidth: 1
         }]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return formatadorMoeda.format(context.raw);
+              }
+            }
+          },
+          datalabels: {
+            align: 'end',
+            anchor: 'end',
+            color: '#4B5563',
+            font: {
+              weight: 'bold'
+            },
+            formatter: function(value) {
+              return formatadorMoeda.format(value);
+            }
+          }
+        },
         scales: {
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => 'R$ ' + value.toLocaleString('pt-BR')
+              callback: value => formatadorMoeda.format(value)
+            }
+          }
+        }
+      },
+      plugins: [{
+        id: 'customDataLabels',
+        afterDatasetsDraw(chart, args, options) {
+          const { ctx, data, chartArea: { top, bottom, left, right, width, height } } = chart;
+          
+          ctx.save();
+          
+          data.datasets[0].data.forEach((datapoint, index) => {
+            const { x, y } = chart.getDatasetMeta(0).data[index].tooltipPosition();
+            
+            // Configuração do texto
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = '#4B5563';
+            ctx.textAlign = 'center';
+            
+            // Formatando o valor SEM o símbolo de R$
+            const valorFormatado = datapoint.toLocaleString('pt-BR', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+            
+            // Adicionando o texto no topo da barra
+            ctx.fillText(valorFormatado, x, y - 10);
+          });
+          
+          ctx.restore();
+        }
+      }]
+    });
+
+    // Gráfico de pizza - Distribuição do faturamento
+    const ctxPizza1 = document.getElementById('graficoPizza1');
+    
+    // Vamos reorganizar os dados para garantir a ordem correta
+    const dadosPizza = {{ dados_pizza | tojson }};
+    
+    // Definir a ordem específica que queremos para os dados
+    const ordemDesejada = ['Lucro Líquido', 'Taxas de Serviço', 'Incentivos'];
+    
+    // Preparar arrays ordenados para labels, dados e cores
+    const labelsOrdenados = [];
+    const dadosOrdenados = [];
+    
+    // Preencher arrays na ordem desejada
+    ordemDesejada.forEach(chave => {
+      if (dadosPizza.hasOwnProperty(chave)) {
+        labelsOrdenados.push(chave);
+        dadosOrdenados.push(dadosPizza[chave]);
+      }
+    });
+    
+    const coresCorretas = [
+      '#10B981',  // Verde (Lucro Líquido)
+      '#EF4444',  // Vermelho (Taxas de Serviço)
+      '#F59E0B'   // Amarelo (Incentivos)
+    ];
+    
+    const graficoPizza1 = new Chart(ctxPizza1, {
+      type: 'doughnut',
+      data: {
+        labels: labelsOrdenados,
+        datasets: [{
+          data: dadosOrdenados,
+          backgroundColor: coresCorretas,
+          borderWidth: 1,
+          borderColor: [
+            'rgba(16, 185, 129, 1)',
+            'rgba(239, 68, 68, 1)',
+            'rgba(245, 158, 11, 1)'
+          ]
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.raw;
+                const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                const percentage = Math.round((value / total) * 100);
+                return `${formatadorMoeda.format(value)} (${percentage}%)`;
+              }
             }
           }
         }
