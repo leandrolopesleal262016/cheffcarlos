@@ -1,0 +1,113 @@
+{
+    "diario": {
+        "2025-05-02": {
+            "faturamento_bruto": 1587.36,
+            "taxas_servico": 16.83,
+            "incentivos": 554.97,
+            "lucro": 1015.56,
+            "num_pedidos": 30,
+            "num_restaurantes": 2
+        },
+        "2025-05-03": {
+            "faturamento_bruto": 2047.49,
+            "taxas_servico": 12.87,
+            "incentivos": 715.82,
+            "lucro": 1318.8,
+            "num_pedidos": 35,
+            "num_restaurantes": 2
+        },
+        "2025-05-04": {
+            "faturamento_bruto": 3732.85,
+            "taxas_servico": 5.94,
+            "incentivos": 807.82,
+            "lucro": 2919.09,
+            "num_pedidos": 43,
+            "num_restaurantes": 2
+        },
+        "2025-05-05": {
+            "faturamento_bruto": 430.41,
+            "taxas_servico": 0.99,
+            "incentivos": 120.02,
+            "lucro": 309.4,
+            "num_pedidos": 7,
+            "num_restaurantes": 2
+        },
+        "2025-05-06": {
+            "faturamento_bruto": 1311.66,
+            "taxas_servico": 11.88,
+            "incentivos": 464.09,
+            "lucro": 835.69,
+            "num_pedidos": 25,
+            "num_restaurantes": 2
+        },
+        "2025-05-07": {
+            "faturamento_bruto": 1655.83,
+            "taxas_servico": 9.9,
+            "incentivos": 419.76,
+            "lucro": 1226.17,
+            "num_pedidos": 24,
+            "num_restaurantes": 2
+        },
+        "2025-05-08": {
+            "faturamento_bruto": 713.63,
+            "taxas_servico": 6.93,
+            "incentivos": 225.04,
+            "lucro": 481.66,
+            "num_pedidos": 13,
+            "num_restaurantes": 2
+        }
+    },
+    "semanal": {
+        "2025.0-18.0": {
+            "faturamento_bruto": 7367.7,
+            "taxas_servico": 35.64,
+            "incentivos": 2078.61,
+            "lucro": 5253.45,
+            "num_pedidos": 108,
+            "num_restaurantes": 2
+        },
+        "2025.0-19.0": {
+            "faturamento_bruto": 4111.53,
+            "taxas_servico": 29.7,
+            "incentivos": 1228.91,
+            "lucro": 2852.92,
+            "num_pedidos": 69,
+            "num_restaurantes": 2
+        },
+        "2025-18": {
+            "faturamento_bruto": 7367.7,
+            "taxas_servico": 35.64,
+            "incentivos": 2078.61,
+            "lucro": 5253.45,
+            "num_pedidos": 108,
+            "num_restaurantes": 2
+        },
+        "2025-19": {
+            "faturamento_bruto": 4111.53,
+            "taxas_servico": 29.7,
+            "incentivos": 1228.91,
+            "lucro": 2852.92,
+            "num_pedidos": 69,
+            "num_restaurantes": 2
+        }
+    },
+    "mensal": {
+        "2025.0-5.0": {
+            "faturamento_bruto": 11479.23,
+            "taxas_servico": 65.34,
+            "incentivos": 3307.52,
+            "lucro": 8106.37,
+            "num_pedidos": 177,
+            "num_restaurantes": 2
+        },
+        "2025-5": {
+            "faturamento_bruto": 11479.23,
+            "taxas_servico": 65.34,
+            "incentivos": 3307.52,
+            "lucro": 8106.37,
+            "num_pedidos": 177,
+            "num_restaurantes": 2
+        }
+    },
+    "ultima_atualizacao": "2025-05-20 11:52:10"
+}

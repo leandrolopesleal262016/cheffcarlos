@@ -8,15 +8,16 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <!-- Chart.js para os gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Font Awesome para ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- Estilos adicionais -->
   <style>
-    /* Garantindo que os cards tenham uma altura mínima */
     .card-min-height {
-      min-height: 120px;
+      min-height: 100px;
     }
     .chart-container {
       position: relative;
-      height: 300px;
+      height: 250px;
       width: 100%;
     }
     .restaurant-card {
@@ -27,164 +28,302 @@
       transform: translateY(-3px);
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
+    .period-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: white;
+      box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    }
+    .tab-active {
+      border-bottom: 2px solid #3B82F6;
+      color: #3B82F6;
+    }
+    .compact-card {
+      padding: 0.75rem;
+    }
+    .compact-card h2 {
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+    .compact-card p {
+      font-size: 1.25rem;
+    }
+    .compact-grid {
+      grid-gap: 0.75rem;
+    }
+    .restaurant-mini-card {
+      transition: all 0.2s ease;
+    }
+    .restaurant-mini-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
   <!-- Header/Menu -->
-  <header class="bg-gray-900 text-white py-4">
-    <div class="container mx-auto px-4">
-      <h1 class="text-2xl font-bold">Fechamento de Caixa</h1>
+  <header class="bg-gray-900 text-white py-3">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold">Fechamento de Caixa</h1>
+      <div class="flex items-center space-x-4">
+        <span class="text-sm opacity-80">Última atualização: {{ data_atual }}</span>
+        <a href="{{ url_for('upload_file') }}" class="text-sm text-blue-300 hover:text-blue-100">
+          <i class="fas fa-upload mr-1"></i> Upload
+        </a>
+      </div>
     </div>
   </header>
 
   <!-- Conteúdo principal -->
-  <main class="flex-grow container mx-auto py-8 px-4">
-    <!-- Cards de resumo -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <!-- Card Faturamento Bruto -->
-      <div class="bg-white rounded-lg shadow p-6 card-min-height">
-        <h2 class="text-gray-600 font-medium mb-2">Faturamento Bruto</h2>
-        <p class="text-3xl font-bold text-blue-500">R$ {{ faturamento }}</p>
-      </div>
+  <main class="flex-grow container mx-auto py-4 px-4">
+    <!-- Mensagens Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 p-3 rounded text-sm
+            {% if category == 'success' %}
+              bg-green-100 text-green-800 border border-green-200
+            {% elif category == 'error' %}  
+              bg-red-100 text-red-800 border border-red-200
+            {% else %}
+              bg-blue-100 text-blue-800 border border-blue-200
+            {% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <!-- Visão Geral e Seletores de Período -->
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-3">
+      <h2 class="text-lg font-bold text-gray-800 mb-2 lg:mb-0">Visão Geral</h2>
       
-      <!-- Card Taxas de Serviço -->
-      <div class="bg-white rounded-lg shadow p-6 card-min-height">
-        <h2 class="text-gray-600 font-medium mb-2">Taxas de Serviço</h2>
-        <p class="text-3xl font-bold text-red-500">R$ {{ taxas }}</p>
-      </div>
-      
-      <!-- Card Incentivos -->
-      <div class="bg-white rounded-lg shadow p-6 card-min-height">
-        <h2 class="text-gray-600 font-medium mb-2">Incentivos</h2>
-        <p class="text-3xl font-bold text-yellow-500">R$ {{ incentivos }}</p>
-      </div>
-      
-      <!-- Card Lucro -->
-      <div class="bg-white rounded-lg shadow p-6 card-min-height">
-        <h2 class="text-gray-600 font-medium mb-2">Lucro</h2>
-        <p class="text-3xl font-bold text-green-500">R$ {{ lucro }}</p>
+      <div class="flex bg-white rounded-lg shadow overflow-hidden text-sm">
+        <button id="tab-dia" class="px-3 py-1 tab-active" onclick="mudarPeriodo('dia')">Hoje</button>
+        <button id="tab-semana" class="px-3 py-1" onclick="mudarPeriodo('semana')">Semana {{ semana_atual }}</button>
+        <button id="tab-mes" class="px-3 py-1" onclick="mudarPeriodo('mes')">{{ mes_atual }}</button>
       </div>
     </div>
 
-    <!-- Cards de Restaurantes -->
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">Dados por Restaurante</h2>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      {% for restaurante in restaurantes %}
-      <div class="restaurant-card rounded-lg shadow overflow-hidden" style="border-color: {{ restaurante.cor }};">
-        <!-- Cabeçalho do Card -->
-        <div class="p-4 flex items-center" style="background-color: {{ restaurante.cor }}20;">
-          <div class="mr-4">
-            <span class="text-2xl" role="img" aria-label="Restaurante">🍽️</span>
+    <!-- Dashboard principal - Layout com 2 colunas em telas grandes -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <!-- Coluna esquerda (2/5 do espaço) - Cards e resumos -->
+      <div class="lg:col-span-2">
+        <!-- Cards de resumo -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 compact-grid mb-4">
+          <!-- Cards Diários (visíveis por padrão) -->
+          <div id="cards-dia" class="contents">
+            <!-- Card Faturamento Bruto -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-blue-500">Hoje</span>
+              <h2 class="text-gray-600 font-medium">Faturamento</h2>
+              <p class="font-bold text-blue-500">R$ {{ faturamento_dia }}</p>
+            </div>
+            
+            <!-- Card Taxas de Serviço -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-red-500">Hoje</span>
+              <h2 class="text-gray-600 font-medium">Taxas</h2>
+              <p class="font-bold text-red-500">R$ {{ taxas_dia }}</p>
+            </div>
+            
+            <!-- Card Incentivos -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-yellow-500">Hoje</span>
+              <h2 class="text-gray-600 font-medium">Incentivos</h2>
+              <p class="font-bold text-yellow-500">R$ {{ incentivos_dia }}</p>
+            </div>
+            
+            <!-- Card Lucro -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-green-500">Hoje</span>
+              <h2 class="text-gray-600 font-medium">Lucro</h2>
+              <p class="font-bold text-green-500">R$ {{ lucro_dia }}</p>
+            </div>
           </div>
-          <div>
-            <h3 class="text-xl font-bold" style="color: {{ restaurante.cor }};">{{ restaurante.nome }}</h3>
+
+          <!-- Cards Semanais (ocultos por padrão) -->
+          <div id="cards-semana" class="hidden">
+            <!-- Card Faturamento Bruto Semanal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-blue-500">Sem.{{ semana_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Faturamento</h2>
+              <p class="font-bold text-blue-500">R$ {{ faturamento_semana }}</p>
+            </div>
+            
+            <!-- Card Taxas de Serviço Semanal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-red-500">Sem.{{ semana_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Taxas</h2>
+              <p class="font-bold text-red-500">R$ {{ taxas_semana }}</p>
+            </div>
+            
+            <!-- Card Incentivos Semanal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-yellow-500">Sem.{{ semana_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Incentivos</h2>
+              <p class="font-bold text-yellow-500">R$ {{ incentivos_semana }}</p>
+            </div>
+            
+            <!-- Card Lucro Semanal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-green-500">Sem.{{ semana_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Lucro</h2>
+              <p class="font-bold text-green-500">R$ {{ lucro_semana }}</p>
+            </div>
+          </div>
+
+          <!-- Cards Mensais (ocultos por padrão) -->
+          <div id="cards-mes" class="hidden">
+            <!-- Card Faturamento Bruto Mensal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-blue-500">{{ mes_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Faturamento</h2>
+              <p class="font-bold text-blue-500">R$ {{ faturamento_mes }}</p>
+            </div>
+            
+            <!-- Card Taxas de Serviço Mensal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-red-500">{{ mes_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Taxas</h2>
+              <p class="font-bold text-red-500">R$ {{ taxas_mes }}</p>
+            </div>
+            
+            <!-- Card Incentivos Mensal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-yellow-500">{{ mes_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Incentivos</h2>
+              <p class="font-bold text-yellow-500">R$ {{ incentivos_mes }}</p>
+            </div>
+            
+            <!-- Card Lucro Mensal -->
+            <div class="bg-white rounded-lg shadow compact-card card-min-height relative">
+              <span class="period-badge bg-green-500">{{ mes_atual }}</span>
+              <h2 class="text-gray-600 font-medium">Lucro</h2>
+              <p class="font-bold text-green-500">R$ {{ lucro_mes }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico de Distribuição -->
+        <div class="bg-white rounded-lg shadow p-3 mb-4">
+          <h2 class="text-sm font-semibold text-gray-800 mb-2">Distribuição de Valores</h2>
+          <div class="chart-container" style="height: 200px;">
+            <canvas id="graficoPizza1"></canvas>
           </div>
         </div>
         
-        <!-- Conteúdo do Card -->
-        <div class="bg-white p-6">
-          <!-- Informações principais -->
-          <div class="grid grid-cols-2 gap-6 mb-6">
-            <!-- Faturamento Total -->
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-gray-500 text-sm mb-1">Faturamento Total</p>
-              <p class="text-2xl font-bold" style="color: {{ restaurante.cor }};">R$ {{ restaurante.faturamento }}</p>
-            </div>
-            
-            <!-- Número de Pedidos -->
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-gray-500 text-sm mb-1">Número de Pedidos</p>
-              <p class="text-2xl font-bold" style="color: {{ restaurante.cor }};">{{ restaurante.num_pedidos }}</p>
-            </div>
-            
-            <!-- Ticket Médio -->
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-gray-500 text-sm mb-1">Ticket Médio</p>
-              <p class="text-2xl font-bold" style="color: {{ restaurante.cor }};">R$ {{ restaurante.ticket_medio }}</p>
-            </div>
-            
-            <!-- Participação -->
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-gray-500 text-sm mb-1">Participação</p>
-              <p class="text-2xl font-bold" style="color: {{ restaurante.cor }};">{{ restaurante.participacao }}%</p>
-            </div>
+        <!-- Tendência Histórica Mensal -->
+        <div class="bg-white rounded-lg shadow p-3">
+          <h2 class="text-sm font-semibold text-gray-800 mb-2">Tendência Histórica Mensal</h2>
+          <div class="chart-container">
+            <canvas id="graficoTendencia"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Coluna direita (3/5 do espaço) - Gráficos principais e restaurantes -->
+      <div class="lg:col-span-3">
+        <!-- Gráfico de barras - Fechamento Semanal -->
+        <div class="bg-white rounded-lg shadow p-3 mb-4">
+          <h2 class="text-sm font-semibold text-gray-800 mb-2">Fechamento por Dia da Semana</h2>
+          <div class="chart-container">
+            <canvas id="graficoBarras"></canvas>
+          </div>
+        </div>
+        
+        <!-- Resumo de Restaurantes -->
+        <div class="bg-white rounded-lg shadow p-3 mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-sm font-semibold text-gray-800">Restaurantes</h2>
+            <span class="text-xs text-gray-500">Ordenado por faturamento</span>
           </div>
           
-          <!-- Pedidos por Dia da Semana -->
-          <h4 class="font-semibold text-gray-700 mb-3">Número de Pedidos por Dia</h4>
-          <div class="grid grid-cols-7 gap-2">
-            {% for dia, contagem in restaurante.pedidos_por_dia.items() %}
-            <div class="text-center">
-              <div class="px-1 py-2 rounded-lg" style="background-color: {{ restaurante.cor }}20;">
-                <p class="text-sm font-medium" style="color: {{ restaurante.cor }};">{{ contagem }}</p>
+          <!-- Cards de resumo dos restaurantes em grid compacto -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {% for restaurante in restaurantes %}
+            <div class="restaurant-mini-card rounded-md overflow-hidden border" style="border-color: {{ restaurante.cor }}20;">
+              <!-- Cabeçalho do Card -->
+              <div class="p-2 flex items-center" style="background-color: {{ restaurante.cor }}10;">
+                <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ restaurante.cor }};"></span>
+                <h3 class="text-xs font-bold truncate" style="color: {{ restaurante.cor }};">{{ restaurante.nome }}</h3>
               </div>
-              <p class="text-xs text-gray-500 mt-1">{{ dia[:3] }}</p>
+              
+              <!-- Conteúdo do Card -->
+              <div class="p-2">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-500">Faturamento:</span>
+                  <span class="font-medium">R$ {{ restaurante.faturamento }}</span>
+                </div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-500">Pedidos:</span>
+                  <span class="font-medium">{{ restaurante.num_pedidos }}</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-500">Participação:</span>
+                  <span class="font-medium">{{ restaurante.participacao }}%</span>
+                </div>
+              </div>
             </div>
             {% endfor %}
           </div>
         </div>
+        
+        <!-- Gráfico de Comparação de Restaurantes -->
+        <div class="bg-white rounded-lg shadow p-3">
+          <h2 class="text-sm font-semibold text-gray-800 mb-2">Comparação de Restaurantes</h2>
+          <div class="chart-container">
+            <canvas id="graficoComparativo"></canvas>
+          </div>
+        </div>
       </div>
-      {% endfor %}
     </div>
 
-    <!-- Cards de gráficos -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Gráfico de barras com resumo - Fechamento Semanal (maior, ocupa 2 colunas) -->
-      <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Fechamento Semanal</h2>
-        <div class="flex flex-col md:flex-row">
-          <!-- Gráfico à esquerda -->
-          <div class="w-full md:w-2/3 pr-0 md:pr-4">
-            <div class="chart-container">
-              <canvas id="graficoBarras"></canvas>
-            </div>
-          </div>
-          
-          <!-- Resumo à direita -->
-          <div class="w-full md:w-1/3 mt-6 md:mt-0 flex flex-col justify-center">
-            <div class="mb-4">
-              <h3 class="text-sm text-gray-500 mb-1">Faturamento Bruto</h3>
-              <p class="text-2xl font-semibold text-blue-500">R$ {{ faturamento }}</p>
-            </div>
-            <div class="mb-4">
-              <h3 class="text-sm text-gray-500 mb-1">Taxas de Serviço</h3>
-              <p class="text-2xl font-semibold text-red-500">R$ {{ taxas }}</p>
-            </div>
-            <div class="mb-4">
-              <h3 class="text-sm text-gray-500 mb-1">Incentivos</h3>
-              <p class="text-2xl font-semibold text-yellow-500">R$ {{ incentivos }}</p>
-            </div>
-            <div>
-              <h3 class="text-sm text-gray-500 mb-1">Lucro</h3>
-              <p class="text-2xl font-semibold text-green-500">R$ {{ lucro }}</p>
-            </div>
-          </div>
-        </div>
+    <!-- Arquivos Carregados (Mini Lista) -->
+    {% if arquivos %}
+    <div class="mt-4 bg-white rounded-lg shadow p-3">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-sm font-semibold text-gray-800">Arquivos Importados</h2>
+        <a href="{{ url_for('upload_file') }}" class="text-xs text-blue-500 hover:text-blue-700">
+          Gerenciar Arquivos
+        </a>
       </div>
-      
-      <!-- Gráfico de pizza - Distribuição do faturamento -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Distribuição de Valores</h2>
-        <div class="chart-container">
-          <canvas id="graficoPizza1"></canvas>
-        </div>
+      <div class="overflow-x-auto text-xs">
+        <table class="min-w-full">
+          <thead>
+            <tr class="bg-gray-50 text-gray-600 border-b">
+              <th class="py-2 px-3 text-left">Arquivo</th>
+              <th class="py-2 px-3 text-left">Tamanho</th>
+              <th class="py-2 px-3 text-left">Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for arquivo in arquivos %}
+            <tr class="border-b hover:bg-gray-50">
+              <td class="py-2 px-3">
+                <i class="fas fa-file-excel mr-1 {% if arquivo.nome.endswith('.xlsx') %}text-green-600{% else %}text-green-700{% endif %}"></i>
+                {{ arquivo.nome }}
+              </td>
+              <td class="py-2 px-3">{{ arquivo.tamanho }}</td>
+              <td class="py-2 px-3">{{ arquivo.data }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
-    
-    <!-- Gráfico de Comparação de Restaurantes -->
-    <div class="mt-8">
-      <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Comparação de Restaurantes</h2>
-        <div class="chart-container">
-          <canvas id="graficoComparativo"></canvas>
-        </div>
-      </div>
-    </div>
+    {% endif %}
   </main>
 
   <!-- Rodapé -->
-  <footer class="bg-gray-900 text-white py-4 mt-8">
-    <div class="container mx-auto px-4 text-center">
+  <footer class="bg-gray-900 text-white py-2 mt-4">
+    <div class="container mx-auto px-4 text-center text-sm">
       <p>Desenvolvido por Leandro Leal 2025</p>
     </div>
   </footer>
@@ -195,6 +334,27 @@
       style: 'currency',
       currency: 'BRL'
     });
+
+    // Função para alternar entre os períodos (dia, semana, mês)
+    function mudarPeriodo(periodo) {
+      // Ocultar todos os cards
+      document.getElementById('cards-dia').classList.add('hidden');
+      document.getElementById('cards-dia').classList.remove('contents');
+      document.getElementById('cards-semana').classList.add('hidden');
+      document.getElementById('cards-semana').classList.remove('contents');
+      document.getElementById('cards-mes').classList.add('hidden');
+      document.getElementById('cards-mes').classList.remove('contents');
+      
+      // Mostrar apenas os cards do período selecionado
+      document.getElementById(`cards-${periodo}`).classList.remove('hidden');
+      document.getElementById(`cards-${periodo}`).classList.add('contents');
+      
+      // Atualizar os tabs ativos
+      document.getElementById('tab-dia').classList.remove('tab-active');
+      document.getElementById('tab-semana').classList.remove('tab-active');
+      document.getElementById('tab-mes').classList.remove('tab-active');
+      document.getElementById(`tab-${periodo}`).classList.add('tab-active');
+    }
 
     // Cores para os gráficos - corrigidas conforme os cards
     const coresDistribuicao = {
@@ -237,17 +397,6 @@
                 return formatadorMoeda.format(context.raw);
               }
             }
-          },
-          datalabels: {
-            align: 'end',
-            anchor: 'end',
-            color: '#4B5563',
-            font: {
-              weight: 'bold'
-            },
-            formatter: function(value) {
-              return formatadorMoeda.format(value);
-            }
           }
         },
         scales: {
@@ -270,18 +419,18 @@
             const { x, y } = chart.getDatasetMeta(0).data[index].tooltipPosition();
             
             // Configuração do texto
-            ctx.font = 'bold 12px Arial';
+            ctx.font = 'bold 10px Arial';
             ctx.fillStyle = '#4B5563';
             ctx.textAlign = 'center';
             
             // Formatando o valor SEM o símbolo de R$
             const valorFormatado = datapoint.toLocaleString('pt-BR', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
             });
             
             // Adicionando o texto no topo da barra
-            ctx.fillText(valorFormatado, x, y - 10);
+            ctx.fillText(valorFormatado, x, y - 5);
           });
           
           ctx.restore();
@@ -336,10 +485,12 @@
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'top',
+            position: 'right',
             labels: {
-              usePointStyle: true,
-              padding: 20
+              boxWidth: 10,
+              font: {
+                size: 10
+              }
             }
           },
           tooltip: {
@@ -350,6 +501,72 @@
                 const percentage = Math.round((value / total) * 100);
                 return `${formatadorMoeda.format(value)} (${percentage}%)`;
               }
+            }
+          }
+        }
+      }
+    });
+
+    // Gráfico de tendência mensal
+    const ctxTendencia = document.getElementById('graficoTendencia');
+    const tendenciaMensal = {{ tendencia_mensal | tojson }};
+    
+    // Extrair dados para o gráfico
+    const periodosMensais = tendenciaMensal.map(item => item.periodo_formatado || item.periodo);
+    const faturamentosMensais = tendenciaMensal.map(item => item.faturamento);
+    const lucrosMensais = tendenciaMensal.map(item => item.lucro);
+    
+    const graficoTendencia = new Chart(ctxTendencia, {
+      type: 'line',
+      data: {
+        labels: periodosMensais,
+        datasets: [
+          {
+            label: 'Faturamento',
+            data: faturamentosMensais,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.4
+          },
+          {
+            label: 'Lucro',
+            data: lucrosMensais,
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 10,
+              font: {
+                size: 10
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${formatadorMoeda.format(context.raw)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: value => formatadorMoeda.format(value)
             }
           }
         }
@@ -401,6 +618,12 @@
         plugins: {
           legend: {
             position: 'top',
+            labels: {
+              boxWidth: 10,
+              font: {
+                size: 10
+              }
+            }
           },
           tooltip: {
             callbacks: {
@@ -421,7 +644,10 @@
             position: 'left',
             title: {
               display: true,
-              text: 'Faturamento (R$)'
+              text: 'Faturamento (R$)',
+              font: {
+                size: 10
+              }
             },
             ticks: {
               callback: value => formatadorMoeda.format(value)
@@ -433,7 +659,10 @@
             position: 'right',
             title: {
               display: true,
-              text: 'Número de Pedidos'
+              text: 'Número de Pedidos',
+              font: {
+                size: 10
+              }
             },
             grid: {
               drawOnChartArea: false
