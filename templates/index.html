@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cheff Carlos - Gerenciamento de Pedidos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<!-- COLE O CSS AQUI (PARTE 2/3) -->
+
+</head>
+<body>
+    <div class="header">
+        <div class="container text-center">
+            <h1><i class="fas fa-utensils me-2"></i>Cheff Carlos</h1>
+            <p class="mb-0">Sistema de Gerenciamento de Pedidos e Vendas</p>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <!-- Alertas -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Navegação por Abas -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pedidos-tab" data-bs-toggle="tab" data-bs-target="#pedidos" type="button" role="tab">
+                    <i class="fas fa-shopping-cart me-2"></i>Pedidos (Entradas)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="saidas-tab" data-bs-toggle="tab" data-bs-target="#saidas" type="button" role="tab">
+                    <i class="fas fa-money-bill-wave me-2"></i>Saídas (Despesas)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cardapio-tab" data-bs-toggle="tab" data-bs-target="#cardapio" type="button" role="tab">
+                    <i class="fas fa-edit me-2"></i>Gerenciar Cardápio
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="relatorio-tab" data-bs-toggle="tab" data-bs-target="#relatorio" type="button" role="tab">
+                    <i class="fas fa-chart-bar me-2"></i>Relatórios
+                </button>
+            </li>
+        </ul>
+
+        <!-- Conteúdo das Abas -->
+        <div class="tab-content" id="mainTabsContent">
+            <!-- ABA PEDIDOS -->
+            <div class="tab-pane fade show active" id="pedidos" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Novo Pedido</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/pedidos" id="pedidoForm">
+                            
+                            <!-- LINHA 1: Dados do Cliente -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-3">
+                                    <label for="cliente_nome" class="form-label">Nome do Cliente *</label>
+                                    <div class="position-relative">
+                                        <input type="text" class="form-control form-control-sm" id="cliente_nome" name="cliente_nome" 
+                                               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+                                        <div id="sugestoes_nome" class="suggestions-dropdown"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="cliente_telefone" class="form-label">Telefone</label>
+                                    <div class="position-relative">
+                                        <input type="tel" class="form-control form-control-sm" id="cliente_telefone" name="cliente_telefone"
+                                               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                                        <div id="sugestoes_telefone" class="suggestions-dropdown"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="cliente_endereco" class="form-label">Endereço</label>
+                                    <div class="input-group">
+                                        <textarea class="form-control form-control-sm" id="cliente_endereco" name="cliente_endereco" rows="1" style="resize: none;"></textarea>
+                                        <div class="input-group-text">
+                                            <input class="form-check-input" type="checkbox" id="eh_balcao" name="eh_balcao">
+                                            <label class="form-check-label ms-1" for="eh_balcao" style="font-size: 0.8rem;">Balcão</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="forma_pagamento" class="form-label">Forma de Pagamento *</label>
+                                    <select class="form-select form-select-sm" id="forma_pagamento" name="forma_pagamento" required>
+                                        <option value="">Selecione...</option>
+                                        {% for forma in formas_pagamento %}
+                                            <option value="{{ forma }}">{{ forma }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- LINHA 2: Cardápio -->
+                            <div class="row g-3 mb-4">
+                                <!-- Pratos -->
+                                <div class="col-md-3">
+                                    <div class="compact-section">
+                                        <div class="section-title text-primary"><i class="fas fa-utensils me-1"></i>Pratos</div>
+                                        <button type="button" class="btn btn-outline-primary w-100" onclick="abrirModalCardapio('Pratos')">
+                                            <i class="fas fa-search me-2"></i>Selecionar Pratos
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Complementos -->
+                                <div class="col-md-3">
+                                    <div class="compact-section">
+                                        <div class="section-title text-warning"><i class="fas fa-plus-circle me-1"></i>Complementos</div>
+                                        <button type="button" class="btn btn-outline-warning w-100" onclick="abrirModalCardapio('Complementos')">
+                                            <i class="fas fa-search me-2"></i>Selecionar Complementos
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Sobremesas -->
+                                <div class="col-md-3">
+                                    <div class="compact-section">
+                                        <div class="section-title text-info"><i class="fas fa-ice-cream me-1"></i>Sobremesas</div>
+                                        <button type="button" class="btn btn-outline-info w-100" onclick="abrirModalCardapio('Sobremesas')">
+                                            <i class="fas fa-search me-2"></i>Selecionar Sobremesas
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Bebidas -->
+                                <div class="col-md-3">
+                                    <div class="compact-section">
+                                        <div class="section-title text-success"><i class="fas fa-glass-cheers me-1"></i>Bebidas</div>
+                                        <button type="button" class="btn btn-outline-success w-100" onclick="abrirModalCardapio('Bebidas')">
+                                            <i class="fas fa-search me-2"></i>Selecionar Bebidas
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Carrinho de Pedidos -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="cart-section">
+                                        <div class="section-title"><i class="fas fa-shopping-cart me-1"></i>Itens do Pedido</div>
+                                        <div id="cartItems" class="cart-items">
+                                            <div class="empty-cart">
+                                                <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted mb-0">Nenhum item adicionado</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- LINHA 3: Total e Botão -->
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-8">
+                                    <div class="total-display" id="valorTotal">
+                                        <i class="fas fa-calculator me-2"></i>Total: R$ 0,00
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="fas fa-save me-2"></i>Salvar Pedido
+                                    </button>
+                                </div>
+                            </div>
+                            
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA SAÍDAS -->
+            <div class="tab-pane fade" id="saidas" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="fas fa-minus-circle me-2"></i>Nova Saída</h4>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="/saidas">
+                                    <div class="mb-3">
+                                        <label for="categoria" class="form-label">Categoria *</label>
+                                        <select class="form-select" id="categoria" name="categoria" required>
+                                            <option value="">Selecione...</option>
+                                            {% for categoria in categorias_saida %}
+                                                <option value="{{ categoria }}">{{ categoria }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="descricao" class="form-label">Descrição</label>
+                                        <textarea class="form-control" id="descricao" name="descricao" rows="2"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="valor" class="form-label">Valor *</label>
+                                        <input type="number" class="form-control" id="valor" name="valor" step="0.01" min="0" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Adicionar Saída
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="fas fa-list me-2"></i>Saídas Recentes</h4>
+                            </div>
+                            <div class="card-body">
+                                <div id="listaSaidas">
+                                    <div class="loading">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Carregando...
+                                    </div>
+                                </div>
+                                <div class="total-display mt-3" id="totalSaidas">
+                                    <i class="fas fa-calculator me-2"></i>Total de Saídas: R$ 0,00
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA GERENCIAR CARDÁPIO -->
+            <div class="tab-pane fade" id="cardapio" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Adicionar Item</h4>
+                            </div>
+                            <div class="card-body">
+                                <form id="formNovoItem">
+                                    <div class="mb-3">
+                                        <label for="item_nome" class="form-label">Nome do Item *</label>
+                                        <input type="text" class="form-control" id="item_nome" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="item_categoria" class="form-label">Categoria *</label>
+                                        <select class="form-select" id="item_categoria" required>
+                                            <option value="">Selecione...</option>
+                                            <option value="Pratos">Pratos</option>
+                                            <option value="Complementos">Complementos</option>
+                                            <option value="Sobremesas">Sobremesas</option>
+                                            <option value="Bebidas">Bebidas</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="item_preco" class="form-label">Preço *</label>
+                                        <input type="number" class="form-control" id="item_preco" step="0.01" min="0" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-plus me-2"></i>Adicionar Item
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0"><i class="fas fa-list me-2"></i>Itens do Cardápio</h4>
+                                <div class="input-group" style="width: 300px;">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="buscaCardapio" placeholder="Buscar itens...">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="listaCardapio">
+                                    <div class="loading">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Carregando...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA RELATÓRIOS -->
+            <div class="tab-pane fade" id="relatorio" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Relatório por Período</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label for="data_inicio" class="form-label">Data Início</label>
+                                <input type="date" class="form-control" id="data_inicio">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="data_fim" class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" id="data_fim">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary" onclick="gerarRelatorio()">
+                                    <i class="fas fa-search me-2"></i>Gerar Relatório
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="relatorioResultado">
+                            <!-- Resultado do relatório será inserido aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Seleção de Cardápio -->
+    <div class="modal fade" id="modalCardapio" tabindex="-1" aria-labelledby="modalCardapioLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalCardapioLabel">
+                        <i class="fas fa-utensils me-2"></i>Selecionar <span id="categoriaAtual">Pratos</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Campo de Busca -->
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="buscaModal" placeholder="Digite para buscar..." 
+                                   autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                        </div>
+                    </div>
+                    
+                    <!-- Lista de Itens -->
+                    <div id="listaItensModal" class="list-container">
+                        <!-- Itens serão inseridos aqui via JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Fechar
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="finalizarSelecaoModal()">
+                        <i class="fas fa-check me-2"></i>Confirmar Seleções
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- COLE O JAVASCRIPT AQUI (PARTE 3/3) -->
+
+</body>
+</html>
+
+<style>
+        :root {
+            --primary-color: #495057;
+            --secondary-color: #343a40;
+            --accent-color: #f4f4f4;
+            --text-dark: #2c2c2c;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 2rem;
+        }
+
+        .container {
+            max-width: 98% !important;
+            margin: 0 auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            background: transparent;
+            color: var(--text-dark);
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            margin: 0 0.25rem;
+            border-radius: 10px 10px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs .nav-link:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-bottom: none;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            height: auto;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(73, 80, 87, 0.25);
+        }
+
+        .form-control-sm {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        /* Desabilitar autocomplete do browser */
+        input[autocomplete="off"] {
+            autocomplete: off !important;
+        }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 600;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .alert {
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            animation: alertSlideIn 0.3s ease-in-out;
+        }
+
+        @keyframes alertSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes alertSlideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        .total-display {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 1rem 0;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .search-select-container {
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .search-input {
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(73, 80, 87, 0.25);
+        }
+
+        .dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            max-height: 120px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: none;
+        }
+
+        .dropdown-list.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 0.4rem 0.6rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+            font-size: 0.75rem;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item .price {
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.7rem;
+        }
+
+        .cart-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            height: fit-content;
+            min-height: 200px;
+            border: 2px solid #e9ecef;
+        }
+
+        .cart-items {
+            min-height: 150px;
+        }
+
+        .empty-cart {
+            text-align: center;
+            padding: 1.5rem 1rem;
+        }
+
+        .cart-item {
+            background: white;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.6rem;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .cart-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.4rem;
+        }
+
+        .cart-item-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.85rem;
+            flex: 1;
+            margin-right: 0.75rem;
+        }
+
+        .cart-item-price {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .cart-item-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.4rem;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .quantity-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .quantity-btn:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .quantity-display {
+            font-weight: 600;
+            min-width: 25px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .saida-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #dc3545;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .relatorio-card {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--primary-color);
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: var(--text-dark);
+        }
+
+        .compact-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(100px); }
+            20% { opacity: 1; transform: translateX(0); }
+            80% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(100px); }
+        }
+
+        .suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: none;
+        }
+
+        .suggestions-dropdown.show {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 0.6rem 0.8rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s ease;
+            font-size: 0.85rem;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .suggestion-phone {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        /* Estilos do Modal - Lista */
+        .modal-lg {
+            max-width: 900px;
+        }
+
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-bottom: none;
+        }
+
+        .modal-header .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        .modal-footer .btn {
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .modal-footer .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .modal-footer .btn-danger:hover {
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        .modal-footer .btn-success:hover {
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .item-list-row {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.6rem;
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .item-list-row:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .item-list-row.selected {
+            border-color: var(--primary-color);
+            background: #f8f9fa;
+            box-shadow: 0 2px 8px rgba(73, 80, 87, 0.15);
+        }
+
+        .item-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .item-select-check {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            transition: all 0.2s ease;
+            font-size: 0.7rem;
+        }
+
+        .item-list-row.selected .item-select-check {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .item-list-row.filtered-hidden {
+            display: none;
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item-list-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.85rem;
+            margin-bottom: 0.1rem;
+            line-height: 1.2;
+        }
+
+        .item-list-price {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .item-list-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .item-list-quantity {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #f8f9fa;
+            padding: 0.3rem;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .quantity-list-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 4px;
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .quantity-list-btn:hover {
+            background: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        .quantity-list-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quantity-list-display {
+            font-weight: 600;
+            min-width: 32px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        #buscaModal:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(73, 80, 87, 0.25);
+        }
+
+        .no-items-found {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+
+        /* Estilos da Aba Gerenciar Cardápio */
+        .cardapio-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .cardapio-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .cardapio-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .cardapio-item-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .cardapio-item-categoria {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .cardapio-item-preco {
+            color: #28a745;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .cardapio-item-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            border: none;
+            color: #212529;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit:hover {
+            background: #e0a800;
+            transform: scale(1.05);
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .editing {
+            border-color: #ffc107 !important;
+            background: #fff3cd;
+        }
+
+        .edit-input {
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.9rem;
+            width: 100%;
+            margin-bottom: 0.25rem;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn-save {
+            background: #28a745;
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .modal-lg {
+                max-width: 95%;
+                margin: 0.5rem;
+            }
+            
+            .item-list-row {
+                padding: 0.5rem;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            
+            .item-info {
+                justify-content: space-between;
+            }
+            
+            .item-list-controls {
+                justify-content: center;
+            }
+            
+            .item-list-name {
+                font-size: 0.8rem;
+            }
+            
+            .item-list-price {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card {
+                margin-bottom: 1rem;
+            }
+            
+            .total-display {
+                font-size: 1.1rem;
+            }
+
+            .compact-section {
+                padding: 0.4rem;
+            }
+
+            .container {
+                max-width: 95% !important;
+            }
+        }
+    </style>
+
+<script>
+        // Carrinho global
+        let carrinho = {};
+        let modalSelecoes = {}; // Seleções temporárias no modal
+        let categoriaAtualModal = '';
+        let buscaAtiva = false; // Flag para saber se há busca ativa
+        let cardapioAtualizado = {}; // Cache do cardápio atualizado
+
+        // Configuração de datas padrão
+        document.addEventListener('DOMContentLoaded', function() {
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('data_inicio').value = hoje;
+            document.getElementById('data_fim').value = hoje;
+            
+            // Carregar saídas inicialmente
+            carregarSaidas();
+            
+            // Carregar cardápio atualizado
+            carregarCardapioAtualizado();
+            
+            // Configurar eventos
+            setupClienteAutoComplete();
+            setupBalcaoCheckbox();
+            setupFormSubmission();
+            setupModalCardapio();
+            setupGerenciarCardapio();
+        });
+
+        // Carregar cardápio atualizado da API
+        function carregarCardapioAtualizado() {
+            return fetch('/api/cardapio')
+                .then(response => response.json())
+                .then(itens => {
+                    // Organizar por categoria
+                    cardapioAtualizado = {
+                        'Pratos': {},
+                        'Complementos': {},
+                        'Sobremesas': {},
+                        'Bebidas': {}
+                    };
+                    
+                    itens.forEach(item => {
+                        if (cardapioAtualizado[item.categoria]) {
+                            cardapioAtualizado[item.categoria][item.nome] = item.preco;
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar cardápio:', error);
+                    // Fallback para cardápio estático se API falhar
+                    cardapioAtualizado = {
+                        'Pratos': {{ cardapio.Pratos | tojson }},
+                        'Complementos': {{ cardapio.Complementos | tojson }},
+                        'Sobremesas': {{ cardapio.Sobremesas | tojson }},
+                        'Bebidas': {{ cardapio.Bebidas | tojson }}
+                    };
+                });
+        }
+
+        // Configurar gerenciamento de cardápio
+        function setupGerenciarCardapio() {
+            // Form para novo item
+            document.getElementById('formNovoItem').addEventListener('submit', function(e) {
+                e.preventDefault();
+                adicionarNovoItem();
+            });
+
+            // Busca no cardápio
+            document.getElementById('buscaCardapio').addEventListener('input', function() {
+                const termo = this.value.toLowerCase();
+                filtrarCardapio(termo);
+            });
+        }
+
+        // Carregar cardápio para gerenciamento
+        function carregarCardapioGerenciamento() {
+            fetch('/api/cardapio')
+                .then(response => response.json())
+                .then(itens => {
+                    const listaCardapio = document.getElementById('listaCardapio');
+                    
+                    if (itens.length === 0) {
+                        listaCardapio.innerHTML = '<p class="text-muted text-center">Nenhum item no cardápio</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    itens.forEach(item => {
+                        html += `
+                            <div class="cardapio-item" data-nome="${item.nome.toLowerCase()}" data-categoria="${item.categoria.toLowerCase()}">
+                                <div class="cardapio-item-header">
+                                    <div>
+                                        <div class="cardapio-item-name">${item.nome}</div>
+                                        <span class="cardapio-item-categoria">${item.categoria}</span>
+                                    </div>
+                                    <div class="cardapio-item-preco">R$ ${item.preco.toFixed(2).replace('.', ',')}</div>
+                                </div>
+                                <div class="cardapio-item-actions">
+                                    <button class="btn-edit" onclick="editarItem(${item.id}, '${item.nome}', '${item.categoria}', ${item.preco})">
+                                        <i class="fas fa-edit me-1"></i>Editar
+                                    </button>
+                                    <button class="btn-delete" onclick="excluirItem(${item.id}, '${item.nome}')">
+                                        <i class="fas fa-trash me-1"></i>Remover
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    listaCardapio.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar cardápio:', error);
+                    document.getElementById('listaCardapio').innerHTML = 
+                        '<p class="text-danger text-center">Erro ao carregar cardápio</p>';
+                });
+        }
+
+        // Adicionar novo item
+        function adicionarNovoItem() {
+            const nome = document.getElementById('item_nome').value.trim();
+            const categoria = document.getElementById('item_categoria').value;
+            const preco = parseFloat(document.getElementById('item_preco').value);
+
+            if (!nome || !categoria || !preco) {
+                mostrarAlerta('Por favor, preencha todos os campos obrigatórios', 'error');
+                return;
+            }
+
+            fetch('/api/cardapio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nome: nome,
+                    categoria: categoria,
+                    preco: preco
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    mostrarAlerta('Item adicionado com sucesso!', 'success');
+                    document.getElementById('formNovoItem').reset();
+                    carregarCardapioGerenciamento();
+                    // Recarregar cardápio para o modal também
+                    carregarCardapioAtualizado();
+                } else {
+                    mostrarAlerta('Erro: ' + result.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                mostrarAlerta('Erro ao adicionar item', 'error');
+            });
+        }
+
+        // Editar item
+        function editarItem(id, nome, categoria, preco) {
+            const itemElement = document.querySelector(`[data-nome="${nome.toLowerCase()}"]`);
+            
+            itemElement.innerHTML = `
+                <div class="cardapio-item-header">
+                    <div>
+                        <input type="text" class="edit-input" id="edit_nome_${id}" value="${nome}">
+                        <select class="edit-input" id="edit_categoria_${id}">
+                            <option value="Pratos" ${categoria === 'Pratos' ? 'selected' : ''}>Pratos</option>
+                            <option value="Complementos" ${categoria === 'Complementos' ? 'selected' : ''}>Complementos</option>
+                            <option value="Sobremesas" ${categoria === 'Sobremesas' ? 'selected' : ''}>Sobremesas</option>
+                            <option value="Bebidas" ${categoria === 'Bebidas' ? 'selected' : ''}>Bebidas</option>
+                        </select>
+                    </div>
+                    <input type="number" class="edit-input" id="edit_preco_${id}" value="${preco}" step="0.01" min="0" style="width: 100px;">
+                </div>
+                <div class="edit-actions">
+                    <button class="btn-save" onclick="salvarEdicao(${id})">
+                        <i class="fas fa-check me-1"></i>Salvar
+                    </button>
+                    <button class="btn-cancel" onclick="carregarCardapioGerenciamento()">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                </div>
+            `;
+            
+            itemElement.classList.add('editing');
+        }
+
+        // Salvar edição
+        function salvarEdicao(id) {
+            const nome = document.getElementById(`edit_nome_${id}`).value.trim();
+            const categoria = document.getElementById(`edit_categoria_${id}`).value;
+            const preco = parseFloat(document.getElementById(`edit_preco_${id}`).value);
+
+            if (!nome || !categoria || !preco) {
+                mostrarAlerta('Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            fetch(`/api/cardapio/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nome: nome,
+                    categoria: categoria,
+                    preco: preco
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    mostrarAlerta('Item atualizado com sucesso!', 'success');
+                    carregarCardapioGerenciamento();
+                    // Recarregar cardápio para o modal também
+                    carregarCardapioAtualizado();
+                } else {
+                    mostrarAlerta('Erro: ' + result.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                mostrarAlerta('Erro ao atualizar item', 'error');
+            });
+        }
+
+        // Excluir item
+        function excluirItem(id, nome) {
+            if (confirm(`Tem certeza que deseja remover "${nome}" do cardápio?`)) {
+                fetch(`/api/cardapio/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        mostrarAlerta('Item removido com sucesso!', 'success');
+                        carregarCardapioGerenciamento();
+                        // Recarregar cardápio para o modal também
+                        carregarCardapioAtualizado();
+                    } else {
+                        mostrarAlerta('Erro: ' + result.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    mostrarAlerta('Erro ao remover item', 'error');
+                });
+            }
+        }
+
+        // Filtrar cardápio
+        function filtrarCardapio(termo) {
+            const itens = document.querySelectorAll('.cardapio-item');
+            
+            itens.forEach(item => {
+                const nome = item.dataset.nome;
+                const categoria = item.dataset.categoria;
+                
+                if (nome.includes(termo) || categoria.includes(termo)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Configurar modal de cardápio
+        function setupModalCardapio() {
+            // Busca no modal
+            document.getElementById('buscaModal').addEventListener('input', function() {
+                const termo = this.value.toLowerCase();
+                filtrarItensModal(termo);
+            });
+        }
+
+        // Abrir modal de cardápio
+        function abrirModalCardapio(categoria) {
+            categoriaAtualModal = categoria;
+            modalSelecoes = {};
+            buscaAtiva = false; // Resetar flag de busca
+            
+            // Recarregar cardápio antes de abrir modal
+            carregarCardapioAtualizado().then(() => {
+                // Atualizar título
+                document.getElementById('categoriaAtual').textContent = categoria;
+                document.getElementById('buscaModal').value = '';
+                
+                // Carregar itens da categoria
+                carregarItensModal(categoria);
+                
+                // Abrir modal
+                const modal = new bootstrap.Modal(document.getElementById('modalCardapio'));
+                modal.show();
+            });
+        }
+
+        // Carregar itens no modal
+        function carregarItensModal(categoria, manterScroll = false) {
+            const listaItens = document.getElementById('listaItensModal');
+            const modalBody = document.querySelector('#modalCardapio .modal-body');
+            
+            // Salvar posição do scroll se necessário
+            let scrollPosition = 0;
+            if (manterScroll && modalBody) {
+                scrollPosition = modalBody.scrollTop;
+            }
+            
+            const itens = cardapioAtualizado[categoria] || {};
+            
+            if (Object.keys(itens).length === 0) {
+                listaItens.innerHTML = `
+                    <div class="no-items-found">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <p>Nenhum item encontrado nesta categoria</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            Object.entries(itens).forEach(([nome, preco]) => {
+                const quantidade = modalSelecoes[nome] || 0;
+                const nomeId = nome.replace(/[^a-zA-Z0-9]/g, '_');
+                
+                html += `
+                    <div class="item-list-row ${quantidade > 0 ? 'selected' : ''}" 
+                         data-nome="${nome.toLowerCase()}"
+                         onclick="toggleItemModal('${nome}', ${preco})">
+                        
+                        <div class="item-info">
+                            <div class="item-select-check">
+                                ${quantidade > 0 ? '<i class="fas fa-check"></i>' : ''}
+                            </div>
+                            
+                            <div class="item-details">
+                                <div class="item-list-name">${nome}</div>
+                                <div class="item-list-price">R$ ${preco.toFixed(2).replace('.', ',')}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="item-list-controls">
+                            <div class="item-list-quantity">
+                                <button type="button" class="quantity-list-btn" 
+                                        onclick="event.stopPropagation(); alterarQuantidadeModal('${nome}', -1)" 
+                                        ${quantidade <= 0 ? 'disabled' : ''}>
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="quantity-list-display">${quantidade}</span>
+                                <button type="button" class="quantity-list-btn" 
+                                        onclick="event.stopPropagation(); alterarQuantidadeModal('${nome}', 1)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            listaItens.innerHTML = html;
+            
+            // Replicar filtro se busca estiver ativa
+            if (buscaAtiva) {
+                const termoBusca = document.getElementById('buscaModal').value.toLowerCase().trim();
+                filtrarItensModal(termoBusca);
+            }
+            
+            // Restaurar posição do scroll
+            if (manterScroll && modalBody) {
+                setTimeout(() => {
+                    modalBody.scrollTop = scrollPosition;
+                }, 0);
+            }
+        }
+
+        // Toggle item no modal
+        function toggleItemModal(nome, preco) {
+            if (modalSelecoes[nome] && modalSelecoes[nome] > 0) {
+                modalSelecoes[nome] = 0;
+            } else {
+                modalSelecoes[nome] = 1;
+            }
+            
+            carregarItensModal(categoriaAtualModal, true); // Manter scroll
+        }
+
+        // Alterar quantidade no modal
+        function alterarQuantidadeModal(nome, delta) {
+            const quantidadeAtual = modalSelecoes[nome] || 0;
+            const novaQuantidade = Math.max(0, quantidadeAtual + delta);
+            
+            if (novaQuantidade === 0) {
+                delete modalSelecoes[nome];
+            } else {
+                modalSelecoes[nome] = novaQuantidade;
+            }
+            
+            carregarItensModal(categoriaAtualModal, true); // Manter scroll
+        }
+
+        // Filtrar itens no modal
+        function filtrarItensModal(termo) {
+            const rows = document.querySelectorAll('.item-list-row');
+            
+            rows.forEach(row => {
+                const nome = row.dataset.nome;
+                if (nome.includes(termo)) {
+                    row.style.display = 'flex';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Finalizar seleção do modal
+        function finalizarSelecaoModal() {
+            // Adicionar seleções ao carrinho principal
+            Object.entries(modalSelecoes).forEach(([nome, quantidade]) => {
+                if (quantidade > 0) {
+                    const preco = getPrecoItem(nome);
+                    if (carrinho[nome]) {
+                        carrinho[nome].quantidade += quantidade;
+                    } else {
+                        carrinho[nome] = {
+                            nome: nome,
+                            preco: preco,
+                            quantidade: quantidade,
+                            categoria: categoriaAtualModal
+                        };
+                    }
+                }
+            });
+            
+            // Atualizar carrinho e fechar modal
+            renderCarrinho();
+            calcularTotal();
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalCardapio'));
+            modal.hide();
+            
+            // Limpar seleções temporárias
+            modalSelecoes = {};
+        }
+
+        // Função auxiliar para buscar preço
+        function getPrecoItem(nome) {
+            for (const categoria in cardapioAtualizado) {
+                if (cardapioAtualizado[categoria][nome]) {
+                    return cardapioAtualizado[categoria][nome];
+                }
+            }
+            return 0;
+        }
+
+        // Função auxiliar para buscar preço (compatibilidade)
+        function get_preco_item(nome) {
+            return getPrecoItem(nome);
+        }
+
+        // Configurar autocompletar para cliente
+        function setupClienteAutoComplete() {
+            const nomeInput = document.getElementById('cliente_nome');
+            const telefoneInput = document.getElementById('cliente_telefone');
+            const enderecoInput = document.getElementById('cliente_endereco');
+            
+            let timeoutId;
+            
+            // Autocompletar por nome
+            nomeInput.addEventListener('input', function() {
+                clearTimeout(timeoutId);
+                const termo = this.value.trim();
+                
+                if (termo.length >= 2) {
+                    timeoutId = setTimeout(() => {
+                        buscarSugestoesCliente(termo, 'nome');
+                    }, 300);
+                } else {
+                    document.getElementById('sugestoes_nome').classList.remove('show');
+                }
+            });
+            
+            // Autocompletar por telefone
+            telefoneInput.addEventListener('input', function() {
+                clearTimeout(timeoutId);
+                const termo = this.value.trim();
+                
+                if (termo.length >= 3) {
+                    timeoutId = setTimeout(() => {
+                        buscarSugestoesCliente(termo, 'telefone');
+                    }, 300);
+                } else {
+                    document.getElementById('sugestoes_telefone').classList.remove('show');
+                }
+            });
+            
+            // Quando o nome ou telefone for alterado, buscar dados completos do cliente
+            nomeInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    if (this.value.trim()) {
+                        buscarDadosCliente(this.value.trim());
+                    }
+                }, 200);
+            });
+            
+            telefoneInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    if (this.value.trim()) {
+                        buscarDadosCliente(this.value.trim());
+                    }
+                }, 200);
+            });
+            
+            // Fechar sugestões ao clicar fora
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.position-relative')) {
+                    document.querySelectorAll('.suggestions-dropdown').forEach(dropdown => {
+                        dropdown.classList.remove('show');
+                    });
+                }
+            });
+        }
+        
+        // Buscar sugestões de clientes
+        function buscarSugestoesCliente(termo, tipo) {
+            fetch(`/api/listar_clientes?termo=${encodeURIComponent(termo)}`)
+                .then(response => response.json())
+                .then(clientes => {
+                    const dropdownId = tipo === 'nome' ? 'sugestoes_nome' : 'sugestoes_telefone';
+                    const dropdown = document.getElementById(dropdownId);
+                    
+                    if (clientes.length === 0) {
+                        dropdown.classList.remove('show');
+                        return;
+                    }
+                    
+                    let html = '';
+                    clientes.forEach(cliente => {
+                        html += `
+                            <div class="suggestion-item" onclick="selecionarCliente('${cliente.nome}', '${cliente.telefone}')">
+                                <div class="suggestion-name">${cliente.nome}</div>
+                                <div class="suggestion-phone">${cliente.telefone}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    dropdown.innerHTML = html;
+                    dropdown.classList.add('show');
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar sugestões:', error);
+                });
+        }
+        
+        // Selecionar cliente da sugestão
+        function selecionarCliente(nome, telefone) {
+            document.getElementById('cliente_nome').value = nome;
+            document.getElementById('cliente_telefone').value = telefone;
+            
+            // Fechar dropdowns
+            document.querySelectorAll('.suggestions-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+            
+            // Buscar dados completos
+            buscarDadosCliente(nome);
+        }
+        
+        // Buscar dados completos do cliente
+        function buscarDadosCliente(termo) {
+            fetch(`/api/buscar_cliente?termo=${encodeURIComponent(termo)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.cliente) {
+                        const cliente = data.cliente;
+                        document.getElementById('cliente_nome').value = cliente.nome;
+                        document.getElementById('cliente_telefone').value = cliente.telefone || '';
+                        document.getElementById('cliente_endereco').value = cliente.endereco || '';
+                        
+                        // Mostrar mensagem de sucesso sutil
+                        mostrarMensagemSutil('Cliente encontrado!', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar dados do cliente:', error);
+                });
+        }
+        
+        // Mostrar mensagem sutil (sem alertas grandes)
+        function mostrarMensagemSutil(mensagem, tipo) {
+            const badge = document.createElement('div');
+            badge.className = `badge bg-${tipo === 'success' ? 'success' : 'danger'} position-fixed`;
+            badge.style.cssText = `
+                top: 20px; 
+                right: 20px; 
+                z-index: 9999; 
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+                animation: fadeInOut 2s ease-in-out;
+            `;
+            badge.textContent = mensagem;
+            
+            document.body.appendChild(badge);
+            
+            setTimeout(() => {
+                if (badge.parentNode) {
+                    badge.remove();
+                }
+            }, 2000);
+        }
+
+        // Configurar caixas de pesquisa
+        function setupSearchBoxes() {
+            const searchInputs = document.querySelectorAll('.search-input');
+            
+            searchInputs.forEach(input => {
+                const dropdownId = input.id.replace('search', 'dropdown');
+                const dropdown = document.getElementById(dropdownId);
+                
+                // Mostrar dropdown ao focar
+                input.addEventListener('focus', () => {
+                    hideAllDropdowns();
+                    dropdown.classList.add('show');
+                    filterDropdown(input.value, dropdown);
+                });
+                
+                // Filtrar ao digitar
+                input.addEventListener('input', (e) => {
+                    filterDropdown(e.target.value, dropdown);
+                });
+                
+                // Adicionar eventos aos itens do dropdown
+                const items = dropdown.querySelectorAll('.dropdown-item');
+                items.forEach(item => {
+                    item.addEventListener('click', () => {
+                        addToCart(item);
+                        input.value = '';
+                        dropdown.classList.remove('show');
+                    });
+                });
+            });
+            
+            // Fechar dropdowns ao clicar fora
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-select-container')) {
+                    hideAllDropdowns();
+                }
+            });
+        }
+
+        // Filtrar itens do dropdown
+        function filterDropdown(searchTerm, dropdown) {
+            const items = dropdown.querySelectorAll('.dropdown-item');
+            const term = searchTerm.toLowerCase();
+            
+            items.forEach(item => {
+                const nome = item.dataset.nome.toLowerCase();
+                if (nome.includes(term)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Esconder todos os dropdowns
+        function hideAllDropdowns() {
+            document.querySelectorAll('.dropdown-list').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+        }
+
+        // Adicionar item ao carrinho
+        function addToCart(item) {
+            const nome = item.dataset.nome;
+            const preco = parseFloat(item.dataset.preco);
+            const categoria = item.dataset.categoria;
+            
+            if (carrinho[nome]) {
+                carrinho[nome].quantidade += 1;
+            } else {
+                carrinho[nome] = {
+                    nome: nome,
+                    preco: preco,
+                    quantidade: 1,
+                    categoria: categoria
+                };
+            }
+            
+            renderCarrinho();
+            calcularTotal();
+        }
+
+        // Renderizar carrinho
+        function renderCarrinho() {
+            const cartItems = document.getElementById('cartItems');
+            
+            if (Object.keys(carrinho).length === 0) {
+                cartItems.innerHTML = `
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">Nenhum item adicionado</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            Object.values(carrinho).forEach(item => {
+                const total = item.preco * item.quantidade;
+                html += `
+                    <div class="cart-item" data-item="${item.nome}">
+                        <div class="cart-item-header">
+                            <div class="cart-item-name">${item.nome}</div>
+                            <div class="cart-item-price">R$ ${total.toFixed(2).replace('.', ',')}</div>
+                        </div>
+                        <div class="cart-item-controls">
+                            <div class="quantity-controls">
+                                <button type="button" class="quantity-btn" onclick="decreaseQuantity('${item.nome}')">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="quantity-display">${item.quantidade}</span>
+                                <button type="button" class="quantity-btn" onclick="increaseQuantity('${item.nome}')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <button type="button" class="remove-btn" onclick="removeFromCart('${item.nome}')">
+                                <i class="fas fa-trash me-1"></i>Remover
+                            </button>
+                        </div>
+                        <input type="hidden" name="item_${item.nome}" value="${item.quantidade}">
+                    </div>
+                `;
+            });
+            
+            cartItems.innerHTML = html;
+        }
+
+        // Aumentar quantidade
+        function increaseQuantity(nome) {
+            if (carrinho[nome]) {
+                carrinho[nome].quantidade += 1;
+                renderCarrinho();
+                calcularTotal();
+            }
+        }
+
+        // Diminuir quantidade
+        function decreaseQuantity(nome) {
+            if (carrinho[nome] && carrinho[nome].quantidade > 1) {
+                carrinho[nome].quantidade -= 1;
+                renderCarrinho();
+                calcularTotal();
+            }
+        }
+
+        // Remover do carrinho
+        function removeFromCart(nome) {
+            delete carrinho[nome];
+            renderCarrinho();
+            calcularTotal();
+        }
+
+        // Calcular total do pedido
+        function calcularTotal() {
+            let total = 0;
+            
+            Object.values(carrinho).forEach(item => {
+                total += item.preco * item.quantidade;
+            });
+            
+            document.getElementById('valorTotal').innerHTML = 
+                `<i class="fas fa-calculator me-2"></i>Total: R$ ${total.toFixed(2).replace('.', ',')}`;
+        }
+
+        // Configurar checkbox balcão
+        function setupBalcaoCheckbox() {
+            const checkboxBalcao = document.getElementById('eh_balcao');
+            const campoEndereco = document.getElementById('cliente_endereco');
+            
+            checkboxBalcao.addEventListener('change', function() {
+                if (this.checked) {
+                    campoEndereco.disabled = true;
+                    campoEndereco.value = '';
+                    campoEndereco.placeholder = 'Pedido no balcão - endereço não necessário';
+                } else {
+                    campoEndereco.disabled = false;
+                    campoEndereco.placeholder = '';
+                }
+            });
+        }
+
+        // Configurar envio do formulário
+        function setupFormSubmission() {
+            document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+                // Validar campos obrigatórios
+                const camposObrigatorios = validarCamposObrigatorios();
+                
+                if (!camposObrigatorios.valido) {
+                    e.preventDefault();
+                    mostrarAlerta(`Campo obrigatório não preenchido: ${camposObrigatorios.campo}`, 'error');
+                    return;
+                }
+                
+                if (Object.keys(carrinho).length === 0) {
+                    e.preventDefault();
+                    mostrarAlerta('Por favor, adicione pelo menos um item ao pedido', 'error');
+                    return;
+                }
+                
+                // Atualizar campos hidden antes do envio
+                renderCarrinho();
+            });
+        }
+
+        // Validar campos obrigatórios
+        function validarCamposObrigatorios() {
+            const clienteNome = document.getElementById('cliente_nome').value.trim();
+            const formaPagamento = document.getElementById('forma_pagamento').value;
+            
+            if (!clienteNome) {
+                document.getElementById('cliente_nome').focus();
+                return { valido: false, campo: 'Nome do Cliente' };
+            }
+            
+            if (!formaPagamento) {
+                document.getElementById('forma_pagamento').focus();
+                return { valido: false, campo: 'Forma de Pagamento' };
+            }
+            
+            return { valido: true };
+        }
+
+        // Carregar lista de saídas
+        function carregarSaidas() {
+            fetch('/api/saidas')
+                .then(response => response.json())
+                .then(saidas => {
+                    const listaSaidas = document.getElementById('listaSaidas');
+                    const totalSaidas = document.getElementById('totalSaidas');
+                    
+                    if (saidas.length === 0) {
+                        listaSaidas.innerHTML = '<p class="text-muted text-center">Nenhuma saída registrada</p>';
+                        totalSaidas.innerHTML = '<i class="fas fa-calculator me-2"></i>Total de Saídas: R$ 0,00';
+                        return;
+                    }
+                    
+                    let total = 0;
+                    let html = '';
+                    
+                    saidas.forEach(saida => {
+                        total += saida.valor;
+                        html += `
+                            <div class="saida-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>${saida.categoria}</strong>
+                                        ${saida.descricao ? `<br><small class="text-muted">${saida.descricao}</small>` : ''}
+                                        <br><small class="text-info">${formatarDataHora(saida.hora_saida)}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="text-danger fw-bold">R$ ${saida.valor.toFixed(2).replace('.', ',')}</div>
+                                        <button class="btn btn-sm btn-outline-danger mt-1" onclick="excluirSaida(${saida.id})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    listaSaidas.innerHTML = html;
+                    totalSaidas.innerHTML = `<i class="fas fa-calculator me-2"></i>Total de Saídas: R$ ${total.toFixed(2).replace('.', ',')}`;
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar saídas:', error);
+                    document.getElementById('listaSaidas').innerHTML = 
+                        '<p class="text-danger text-center">Erro ao carregar saídas</p>';
+                });
+        }
+
+        // Excluir saída
+        function excluirSaida(id) {
+            if (confirm('Tem certeza que deseja excluir esta saída?')) {
+                fetch(`/saidas/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        carregarSaidas();
+                        mostrarAlerta('Saída excluída com sucesso!', 'success');
+                    } else {
+                        mostrarAlerta('Erro ao excluir saída: ' + result.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    mostrarAlerta('Erro ao excluir saída', 'error');
+                });
+            }
+        }
+
+        // Gerar relatório
+        function gerarRelatorio() {
+            const dataInicio = document.getElementById('data_inicio').value;
+            const dataFim = document.getElementById('data_fim').value;
+            
+            if (!dataInicio || !dataFim) {
+                mostrarAlerta('Por favor, selecione as datas de início e fim', 'error');
+                return;
+            }
+            
+            const relatorioDiv = document.getElementById('relatorioResultado');
+            relatorioDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>Gerando relatório...</div>';
+            
+            fetch(`/api/relatorio?data_inicio=${dataInicio}&data_fim=${dataFim}`)
+                .then(response => response.json())
+                .then(dados => {
+                    let html = `
+                        <div class="relatorio-card">
+                            <h3 class="text-center mb-4">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Relatório: ${formatarData(dados.periodo.inicio)} até ${formatarData(dados.periodo.fim)}
+                            </h3>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card text-success">
+                                        <div class="stat-value">R$ ${dados.total_entradas.toFixed(2).replace('.', ',')}</div>
+                                        <div class="stat-label">Total de Entradas</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card text-danger">
+                                        <div class="stat-value">R$ ${dados.total_saidas.toFixed(2).replace('.', ',')}</div>
+                                        <div class="stat-label">Total de Saídas</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card ${dados.saldo >= 0 ? 'text-success' : 'text-danger'}">
+                                        <div class="stat-value">R$ ${dados.saldo.toFixed(2).replace('.', ',')}</div>
+                                        <div class="stat-label">Saldo do Período</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (dados.pedidos.length > 0) {
+                        html += `
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Pedidos do Período</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Data</th>
+                                                    <th>Cliente</th>
+                                                    <th>Pagamento</th>
+                                                    <th class="text-end">Valor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                        `;
+                        
+                        dados.pedidos.forEach(pedido => {
+                            html += `
+                                <tr>
+                                    <td>${formatarDataHora(pedido.hora_pedido)}</td>
+                                    <td>${pedido.cliente_nome}</td>
+                                    <td><span class="badge bg-secondary">${pedido.forma_pagamento}</span></td>
+                                    <td class="text-end text-success fw-bold">R$ ${pedido.valor_total.toFixed(2).replace('.', ',')}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    relatorioDiv.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Erro ao gerar relatório:', error);
+                    relatorioDiv.innerHTML = '<p class="text-danger text-center">Erro ao gerar relatório</p>';
+                });
+        }
+
+        // Utilitários
+        function formatarData(dataStr) {
+            const data = new Date(dataStr + 'T00:00:00');
+            return data.toLocaleDateString('pt-BR');
+        }
+
+        function formatarDataHora(dataHoraStr) {
+            // Verificar se já é um datetime completo ou apenas data
+            let dataObj;
+            if (dataHoraStr.includes(' ')) {
+                // Já é um datetime (2025-05-31 16:07:52)
+                dataObj = new Date(dataHoraStr.replace(' ', 'T'));
+            } else {
+                // É apenas data (2025-05-31)
+                dataObj = new Date(dataHoraStr + 'T00:00:00');
+            }
+            
+            const dataFormatada = dataObj.toLocaleDateString('pt-BR');
+            const horaFormatada = dataObj.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            return `${dataFormatada} ${horaFormatada}`;
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            // Remover alertas existentes
+            document.querySelectorAll('.alert').forEach(alert => {
+                if (!alert.closest('.container')) return; // Manter apenas alertas do sistema
+                alert.remove();
+            });
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${mensagem}
+            `;
+            
+            const container = document.querySelector('.container');
+            const firstCard = container.querySelector('.card');
+            container.insertBefore(alertDiv, firstCard);
+            
+            // Auto-remover após 5 segundos
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.style.animation = 'alertSlideOut 0.3s ease-in-out';
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            alertDiv.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+        // Recarregar saídas quando a aba for ativada
+        document.getElementById('saidas-tab').addEventListener('shown.bs.tab', function () {
+            carregarSaidas();
+        });
+
+        // Carregar cardápio quando a aba for ativada
+        document.getElementById('cardapio-tab').addEventListener('shown.bs.tab', function () {
+            carregarCardapioGerenciamento();
+        });
+    </script>
