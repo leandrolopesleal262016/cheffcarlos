@@ -1668,6 +1668,98 @@
                 max-width: 95% !important;
             }
         }
+
+        /* ===== ESTILOS PARA LINKS DE MAPA ===== */
+
+.pedido-endereco-com-mapa {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    padding: 0.25rem 0;
+}
+
+.endereco-texto {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-style: italic;
+    flex: 1;
+    margin-right: 0.5rem;
+}
+
+.mapa-links {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.btn-mapa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    min-width: 28px;
+    height: 24px;
+}
+
+.btn-mapa:hover {
+    transform: scale(1.05);
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.btn-mapa.google {
+    background: #4285f4;
+    color: white;
+    border-color: #4285f4;
+}
+
+.btn-mapa.google:hover {
+    background: #3367d6;
+    color: white;
+}
+
+.btn-mapa.waze {
+    background: #00d4f7;
+    color: white;
+    border-color: #00d4f7;
+}
+
+.btn-mapa.waze:hover {
+    background: #00b8d9;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .pedido-endereco-com-mapa {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .endereco-texto {
+        margin-right: 0;
+        margin-bottom: 0.25rem;
+    }
+    
+    .mapa-links {
+        align-self: flex-start;
+    }
+    
+    .btn-mapa {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        min-width: 32px;
+        height: 28px;
+    }
+}
+
 </style>
 
 <script>
@@ -2745,8 +2837,9 @@
                                 <div class="pedido-contato">
                                     ${pedido.cliente_telefone ? `📞 ${pedido.cliente_telefone}` : ''}
                                 </div>
-                                ${!pedido.eh_balcao && pedido.cliente_endereco ? 
-                                    `<div class="pedido-endereco">📍 ${pedido.cliente_endereco}</div>` : ''}
+                                ${(!pedido.eh_balcao && pedido.cliente_endereco) 
+                                    ? criarHtmlEndereco(pedido.cliente_endereco)
+                                    : ''}
                             </div>
                             <div class="pedido-valores">
                                 <div class="pedido-valor">R$ ${pedido.valor_total.toFixed(2).replace('.', ',')}</div>
@@ -3265,6 +3358,46 @@ function excluirCliente(id, nome) {
 // Ver histórico do cliente
 function verHistoricoCliente(id, nome) {
     mostrarAlerta(`Histórico do cliente ${nome} - Funcionalidade em desenvolvimento`, 'info');
+}
+
+// ===== FUNÇÕES PARA LINKS DE MAPA =====
+
+function criarLinkMapa(endereco, cidade = 'Bauru, SP') {
+    if (!endereco || endereco.trim() === '') {
+        return '';
+    }
+    
+    const enderecoCompleto = `${endereco.trim()}, ${cidade}`;
+    const enderecoEncoded = encodeURIComponent(enderecoCompleto);
+    
+    return {
+        google: `https://www.google.com/maps/search/?api=1&query=${enderecoEncoded}`,
+        waze: `https://waze.com/ul?q=${enderecoEncoded}`
+    };
+}
+
+function criarHtmlEndereco(endereco) {
+    if (!endereco || endereco.trim() === '') {
+        return '';
+    }
+    
+    const links = criarLinkMapa(endereco);
+    
+    return `
+        <div class="pedido-endereco-com-mapa">
+            <div class="endereco-texto">📍 ${endereco}</div>
+            <div class="mapa-links">
+                <a href="${links.google}" target="_blank" class="btn-mapa google" 
+                   title="Abrir no Google Maps" onclick="event.stopPropagation();">
+                    <i class="fas fa-map-marker-alt"></i>
+                </a>
+                <a href="${links.waze}" target="_blank" class="btn-mapa waze" 
+                   title="Abrir no Waze" onclick="event.stopPropagation();">
+                    <i class="fas fa-route"></i>
+                </a>
+            </div>
+        </div>
+    `;
 }
 
 </script>
