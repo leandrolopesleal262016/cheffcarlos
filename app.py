@@ -584,6 +584,98 @@ def excluir_saida(saida_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+# Adicione esta nova rota no app.py
+
+@app.route('/api/pedidos_dia')
+def listar_pedidos_dia():
+    """API para listar todos os pedidos do dia atual"""
+    data_hoje = date.today().isoformat()
+    
+    conn = get_db_connection()
+    
+    pedidos = conn.execute('''
+        SELECT * FROM pedidos 
+        WHERE data_pedido = ?
+        ORDER BY hora_pedido DESC
+    ''', (data_hoje,)).fetchall()
+    
+    conn.close()
+    
+    pedidos_list = []
+    for pedido in pedidos:
+        # Processar itens do pedido (JSON)
+        try:
+            itens_pedido = json.loads(pedido['pratos']) if pedido['pratos'] else {}
+        except:
+            itens_pedido = {}
+        
+        # Calcular total de itens
+        total_itens = sum(itens_pedido.values()) if itens_pedido else 0
+        
+        pedidos_list.append({
+            'id': pedido['id'],
+            'cliente_nome': pedido['cliente_nome'],
+            'cliente_telefone': pedido['cliente_telefone'],
+            'cliente_endereco': pedido['cliente_endereco'],
+            'eh_balcao': pedido['eh_balcao'],
+            'itens_pedido': itens_pedido,
+            'total_itens': total_itens,
+            'forma_pagamento': pedido['forma_pagamento'],
+            'valor_total': pedido['valor_total'],
+            'data_pedido': pedido['data_pedido'],
+            'hora_pedido': pedido['hora_pedido']
+        })
+    
+    return jsonify(pedidos_list)
+
+@app.route('/api/pedido/<int:pedido_id>')
+def obter_pedido(pedido_id):
+    """API para obter detalhes de um pedido específico"""
+    conn = get_db_connection()
+    
+    pedido = conn.execute('''
+        SELECT * FROM pedidos WHERE id = ?
+    ''', (pedido_id,)).fetchone()
+    
+    conn.close()
+    
+    if not pedido:
+        return jsonify({'error': 'Pedido não encontrado'}), 404
+    
+    # Processar itens do pedido
+    try:
+        itens_pedido = json.loads(pedido['pratos']) if pedido['pratos'] else {}
+    except:
+        itens_pedido = {}
+    
+    # Calcular detalhes dos itens
+    itens_detalhados = []
+    for item_nome, quantidade in itens_pedido.items():
+        preco_unitario = get_preco_item(item_nome)
+        total_item = preco_unitario * quantidade
+        
+        itens_detalhados.append({
+            'nome': item_nome,
+            'quantidade': quantidade,
+            'preco_unitario': preco_unitario,
+            'total': total_item
+        })
+    
+    pedido_detalhado = {
+        'id': pedido['id'],
+        'cliente_nome': pedido['cliente_nome'],
+        'cliente_telefone': pedido['cliente_telefone'],
+        'cliente_endereco': pedido['cliente_endereco'],
+        'eh_balcao': pedido['eh_balcao'],
+        'itens_detalhados': itens_detalhados,
+        'forma_pagamento': pedido['forma_pagamento'],
+        'valor_total': pedido['valor_total'],
+        'data_pedido': pedido['data_pedido'],
+        'hora_pedido': pedido['hora_pedido']
+    }
+    
+    return jsonify(pedido_detalhado)
+
 @app.route('/api/relatorio')
 def relatorio():
     """API para gerar relatório por período"""
