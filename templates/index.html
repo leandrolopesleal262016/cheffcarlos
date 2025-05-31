@@ -42,6 +42,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="clientes-tab" data-bs-toggle="tab" data-bs-target="#clientes" type="button" role="tab">
+                    <i class="fas fa-users me-2"></i>Clientes
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="saidas-tab" data-bs-toggle="tab" data-bs-target="#saidas" type="button" role="tab">
                     <i class="fas fa-money-bill-wave me-2"></i>Saídas (Despesas)
                 </button>
@@ -57,7 +62,6 @@
                 </button>
             </li>
         </ul>
-
         <!-- Conteúdo das Abas -->
         <div class="tab-content" id="mainTabsContent">
             <!-- ABA PEDIDOS -->
@@ -276,6 +280,83 @@
                 </div>
             </div>
 
+            <div class="tab-pane fade" id="clientes" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>Adicionar Cliente</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="formNovoCliente">
+                                <div class="mb-3">
+                                    <label for="cliente_nome_novo" class="form-label">Nome do Cliente *</label>
+                                    <input type="text" class="form-control" id="cliente_nome_novo" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="cliente_telefone_novo" class="form-label">Telefone</label>
+                                    <input type="tel" class="form-control" id="cliente_telefone_novo">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="cliente_endereco_novo" class="form-label">Endereço</label>
+                                    <textarea class="form-control" id="cliente_endereco_novo" rows="2"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-plus me-2"></i>Adicionar Cliente
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0"><i class="fas fa-users me-2"></i>Clientes Cadastrados</h4>
+                            <div class="d-flex gap-2">
+                                <div class="input-group" style="width: 300px;">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="buscaClientes" placeholder="Buscar clientes...">
+                                </div>
+                                <button type="button" class="btn btn-outline-primary" onclick="carregarClientes()">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Estatísticas -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="stat-card text-primary">
+                                        <div class="stat-value" id="totalClientes">0</div>
+                                        <div class="stat-label">Total de Clientes</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="stat-card text-success">
+                                        <div class="stat-value" id="clientesComPedidos">0</div>
+                                        <div class="stat-label">Com Pedidos</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="stat-card text-info">
+                                        <div class="stat-value" id="clientesRecentes">0</div>
+                                        <div class="stat-label">Novos (30 dias)</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lista de Clientes -->
+                            <div id="listaClientes">
+                                <div class="loading">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Carregando clientes...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
             <!-- ABA SAÍDAS -->
             <div class="tab-pane fade" id="saidas" role="tabpanel">
                 <div class="row">
@@ -491,6 +572,102 @@
 </html>
 
 <style>
+
+    .cliente-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    border-left: 4px solid #007bff;
+    }
+
+    .cliente-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .cliente-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .cliente-info h5 {
+        color: var(--text-dark);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .cliente-contato {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+
+    .cliente-endereco {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .cliente-stats {
+        text-align: right;
+        font-size: 0.85rem;
+    }
+
+    .cliente-pedidos {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .cliente-data {
+        color: #6c757d;
+    }
+
+    .cliente-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .btn-cliente {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-cliente.edit {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .btn-cliente.delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-cliente:hover {
+        transform: scale(1.05);
+    }
+
+    @media (max-width: 768px) {
+        .cliente-header {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .cliente-stats {
+            text-align: left;
+        }
+    }
         :root {
             --primary-color: #495057;
             --secondary-color: #343a40;
@@ -1948,21 +2125,31 @@
         function setupClienteAutoComplete() {
             const nomeInput = document.getElementById('cliente_nome');
             const telefoneInput = document.getElementById('cliente_telefone');
-            const enderecoInput = document.getElementById('cliente_endereco');
             
             let timeoutId;
+            
+            // Verificar se os elementos existem
+            if (!nomeInput || !telefoneInput) {
+                console.error('Elementos de cliente não encontrados!');
+                return;
+            }
+            
+            console.log('Autocompletar configurado!'); // Debug
             
             // Autocompletar por nome
             nomeInput.addEventListener('input', function() {
                 clearTimeout(timeoutId);
                 const termo = this.value.trim();
                 
+                console.log('Digitando nome:', termo); // Debug
+                
                 if (termo.length >= 2) {
                     timeoutId = setTimeout(() => {
                         buscarSugestoesCliente(termo, 'nome');
                     }, 300);
                 } else {
-                    document.getElementById('sugestoes_nome').classList.remove('show');
+                    const dropdown = document.getElementById('sugestoes_nome');
+                    if (dropdown) dropdown.classList.remove('show');
                 }
             });
             
@@ -1971,16 +2158,19 @@
                 clearTimeout(timeoutId);
                 const termo = this.value.trim();
                 
+                console.log('Digitando telefone:', termo); // Debug
+                
                 if (termo.length >= 3) {
                     timeoutId = setTimeout(() => {
                         buscarSugestoesCliente(termo, 'telefone');
                     }, 300);
                 } else {
-                    document.getElementById('sugestoes_telefone').classList.remove('show');
+                    const dropdown = document.getElementById('sugestoes_telefone');
+                    if (dropdown) dropdown.classList.remove('show');
                 }
             });
             
-            // Quando o nome ou telefone for alterado, buscar dados completos do cliente
+            // Buscar dados completos quando sair do campo
             nomeInput.addEventListener('blur', function() {
                 setTimeout(() => {
                     if (this.value.trim()) {
@@ -2006,17 +2196,31 @@
                 }
             });
         }
+
         
         // Buscar sugestões de clientes
         function buscarSugestoesCliente(termo, tipo) {
+            console.log('Buscando sugestões para:', termo, 'tipo:', tipo); // Debug
+            
             fetch(`/api/listar_clientes?termo=${encodeURIComponent(termo)}`)
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Resposta da API:', response.status); // Debug
+                    return response.json();
+                })
                 .then(clientes => {
+                    console.log('Clientes encontrados:', clientes); // Debug
+                    
                     const dropdownId = tipo === 'nome' ? 'sugestoes_nome' : 'sugestoes_telefone';
                     const dropdown = document.getElementById(dropdownId);
                     
+                    if (!dropdown) {
+                        console.error('Dropdown não encontrado:', dropdownId);
+                        return;
+                    }
+                    
                     if (clientes.length === 0) {
                         dropdown.classList.remove('show');
+                        console.log('Nenhum cliente encontrado'); // Debug
                         return;
                     }
                     
@@ -2032,6 +2236,7 @@
                     
                     dropdown.innerHTML = html;
                     dropdown.classList.add('show');
+                    console.log('Dropdown exibido com', clientes.length, 'sugestões'); // Debug
                 })
                 .catch(error => {
                     console.error('Erro ao buscar sugestões:', error);
@@ -2840,6 +3045,228 @@
         document.getElementById('pedidos-dia-tab').addEventListener('shown.bs.tab', function () {
             carregarPedidosDia();
         });
+
+        // Variáveis para clientes
+let clientesData = [];
+
+// Event listener para aba clientes
+document.getElementById('clientes-tab').addEventListener('shown.bs.tab', function () {
+    carregarClientes();
+});
+
+// Configurar form de novo cliente
+document.getElementById('formNovoCliente').addEventListener('submit', function(e) {
+    e.preventDefault();
+    adicionarNovoCliente();
+});
+
+// Configurar busca de clientes
+document.getElementById('buscaClientes').addEventListener('input', function() {
+    const termo = this.value.toLowerCase();
+    filtrarClientes(termo);
+});
+
+// Carregar clientes
+function carregarClientes() {
+    const lista = document.getElementById('listaClientes');
+    lista.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>Carregando clientes...</div>';
+    
+    fetch('/api/clientes')
+        .then(response => response.json())
+        .then(clientes => {
+            clientesData = clientes;
+            atualizarEstatisticasClientes();
+            renderizarClientes();
+        })
+        .catch(error => {
+            console.error('Erro ao carregar clientes:', error);
+            lista.innerHTML = '<p class="text-danger text-center">Erro ao carregar clientes</p>';
+        });
+}
+
+// Atualizar estatísticas
+function atualizarEstatisticasClientes() {
+    const total = clientesData.length;
+    const comPedidos = clientesData.filter(c => c.total_pedidos > 0).length;
+    
+    // Clientes dos últimos 30 dias
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const recentes = clientesData.filter(c => new Date(c.data_cadastro) >= trintaDiasAtras).length;
+    
+    document.getElementById('totalClientes').textContent = total;
+    document.getElementById('clientesComPedidos').textContent = comPedidos;
+    document.getElementById('clientesRecentes').textContent = recentes;
+}
+
+// Renderizar lista de clientes
+function renderizarClientes() {
+    const lista = document.getElementById('listaClientes');
+    
+    if (clientesData.length === 0) {
+        lista.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Nenhum cliente cadastrado</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    clientesData.forEach(cliente => {
+        const dataCadastro = new Date(cliente.data_cadastro).toLocaleDateString('pt-BR');
+        
+        html += `
+            <div class="cliente-card" data-nome="${cliente.nome.toLowerCase()}" data-telefone="${cliente.telefone || ''}">
+                <div class="cliente-header">
+                    <div class="cliente-info">
+                        <h5>${cliente.nome}</h5>
+                        ${cliente.telefone ? `<div class="cliente-contato">📞 ${cliente.telefone}</div>` : ''}
+                        ${cliente.endereco ? `<div class="cliente-endereco">📍 ${cliente.endereco}</div>` : ''}
+                    </div>
+                    <div class="cliente-stats">
+                        <div class="cliente-pedidos">${cliente.total_pedidos} pedidos</div>
+                        <div class="cliente-data">Desde ${dataCadastro}</div>
+                    </div>
+                </div>
+                <div class="cliente-actions">
+                    <button class="btn-cliente edit" onclick="editarCliente(${cliente.id}, '${cliente.nome}', '${cliente.telefone || ''}', '${cliente.endereco || ''}')">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </button>
+                    <button class="btn-cliente delete" onclick="excluirCliente(${cliente.id}, '${cliente.nome}')">
+                        <i class="fas fa-trash me-1"></i>Excluir
+                    </button>
+                    <button class="btn-cliente" style="background: #17a2b8; color: white;" onclick="verHistoricoCliente(${cliente.id}, '${cliente.nome}')">
+                        <i class="fas fa-history me-1"></i>Histórico
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    lista.innerHTML = html;
+}
+
+// Filtrar clientes
+function filtrarClientes(termo) {
+    const cards = document.querySelectorAll('.cliente-card');
+    
+    cards.forEach(card => {
+        const nome = card.dataset.nome;
+        const telefone = card.dataset.telefone;
+        
+        if (nome.includes(termo) || telefone.includes(termo)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Adicionar novo cliente
+function adicionarNovoCliente() {
+    const nome = document.getElementById('cliente_nome_novo').value.trim();
+    const telefone = document.getElementById('cliente_telefone_novo').value.trim();
+    const endereco = document.getElementById('cliente_endereco_novo').value.trim();
+
+    if (!nome) {
+        mostrarAlerta('Por favor, preencha o nome do cliente', 'error');
+        return;
+    }
+
+    fetch('/api/clientes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            nome: nome,
+            telefone: telefone,
+            endereco: endereco
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            mostrarAlerta('Cliente adicionado com sucesso!', 'success');
+            document.getElementById('formNovoCliente').reset();
+            carregarClientes();
+        } else {
+            mostrarAlerta('Erro: ' + result.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao adicionar cliente', 'error');
+    });
+}
+
+// Editar cliente
+function editarCliente(id, nome, telefone, endereco) {
+    // Implementar modal de edição ou prompt
+    const novoNome = prompt('Nome do cliente:', nome);
+    if (novoNome === null) return;
+    
+    const novoTelefone = prompt('Telefone:', telefone);
+    if (novoTelefone === null) return;
+    
+    const novoEndereco = prompt('Endereço:', endereco);
+    if (novoEndereco === null) return;
+
+    fetch(`/api/clientes/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            nome: novoNome,
+            telefone: novoTelefone,
+            endereco: novoEndereco
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            mostrarAlerta('Cliente atualizado com sucesso!', 'success');
+            carregarClientes();
+        } else {
+            mostrarAlerta('Erro: ' + result.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao atualizar cliente', 'error');
+    });
+}
+
+// Excluir cliente
+function excluirCliente(id, nome) {
+    if (confirm(`Tem certeza que deseja excluir o cliente "${nome}"?`)) {
+        fetch(`/api/clientes/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                mostrarAlerta('Cliente excluído com sucesso!', 'success');
+                carregarClientes();
+            } else {
+                mostrarAlerta('Erro: ' + result.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarAlerta('Erro ao excluir cliente', 'error');
+        });
+    }
+}
+
+// Ver histórico do cliente
+function verHistoricoCliente(id, nome) {
+    mostrarAlerta(`Histórico do cliente ${nome} - Funcionalidade em desenvolvimento`, 'info');
+}
+
 </script>
 
 

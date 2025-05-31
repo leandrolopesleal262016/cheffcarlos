@@ -400,6 +400,8 @@ def listar_categorias():
     """API para listar categorias disponíveis"""
     categorias = list(CARDAPIO.keys())
     return jsonify(categorias)
+
+@app.route('/api/listar_clientes')
 def listar_clientes():
     """API para listar clientes para autocompletar"""
     termo = request.args.get('termo', '').strip()
@@ -428,10 +430,11 @@ def listar_clientes():
     for cliente in clientes:
         clientes_list.append({
             'nome': cliente['nome'],
-            'telefone': cliente['telefone']
+            'telefone': cliente['telefone'] if cliente['telefone'] else ''
         })
     
     return jsonify(clientes_list)
+
 def calcular_total():
     """API para calcular o total do pedido"""
     data = request.get_json()
@@ -729,6 +732,206 @@ def relatorio():
             'inicio': data_inicio,
             'fim': data_fim
         }
+    })
+
+# ADICIONE ESTAS ROTAS NO SEU app.py
+
+@app.route('/api/clientes')
+def listar_todos_clientes():
+    """API para listar todos os clientes com estatísticas"""
+    conn = get_db_connection()
+    
+    clientes = conn.execute('''
+        SELECT 
+            c.id, 
+            c.nome, 
+            c.telefone, 
+            c.endereco, 
+            c.data_cadastro,
+            COUNT(p.id) as total_pedidos,
+            COALESCE(SUM(p.valor_total), 0) as valor_total_gasto
+        FROM clientes c
+        LEFT JOIN pedidos p ON c.nome = p.cliente_nome
+        GROUP BY c.id, c.nome, c.telefone, c.endereco, c.data_cadastro
+        ORDER BY c.data_cadastro DESC
+    ''').fetchall()
+    
+    conn.close()
+    
+    clientes_list = []
+    for cliente in clientes:
+        clientes_list.append({
+            'id': cliente['id'],
+            'nome': cliente['nome'],
+            'telefone': cliente['telefone'],
+            'endereco': cliente['endereco'],
+            'data_cadastro': cliente['data_cadastro'],
+            'total_pedidos': cliente['total_pedidos'],
+            'valor_total_gasto': cliente['valor_total_gasto']
+        })
+    
+    return jsonify(clientes_list)
+
+@app.route('/api/clientes', methods=['POST'])
+def criar_cliente():
+    """API para criar novo cliente"""
+    try:
+        data = request.get_json()
+        nome = data.get('nome', '').strip()
+        telefone = data.get('telefone', '').strip()
+        endereco = data.get('endereco', '').strip()
+        
+        if not nome:
+            return jsonify({'success': False, 'message': 'Nome é obrigatório'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se cliente já existe
+        cliente_existente = cursor.execute('''
+            SELECT id FROM clientes 
+            WHERE nome = ? AND telefone = ?
+        ''', (nome, telefone)).fetchone()
+        
+        if cliente_existente:
+            return jsonify({'success': False, 'message': 'Cliente já cadastrado'}), 400
+        
+        # Inserir novo cliente
+        cursor.execute('''
+            INSERT INTO clientes (nome, telefone, endereco)
+            VALUES (?, ?, ?)
+        ''', (nome, telefone, endereco))
+        
+        cliente_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Cliente criado com sucesso!',
+            'id': cliente_id
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/clientes/<int:cliente_id>', methods=['PUT'])
+def atualizar_cliente(cliente_id):
+    """API para atualizar cliente"""
+    try:
+        data = request.get_json()
+        nome = data.get('nome', '').strip()
+        telefone = data.get('telefone', '').strip()
+        endereco = data.get('endereco', '').strip()
+        
+        if not nome:
+            return jsonify({'success': False, 'message': 'Nome é obrigatório'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se cliente existe
+        cliente_existente = cursor.execute('''
+            SELECT id FROM clientes WHERE id = ?
+        ''', (cliente_id,)).fetchone()
+        
+        if not cliente_existente:
+            return jsonify({'success': False, 'message': 'Cliente não encontrado'}), 404
+        
+        # Atualizar cliente
+        cursor.execute('''
+            UPDATE clientes 
+            SET nome = ?, telefone = ?, endereco = ?
+            WHERE id = ?
+        ''', (nome, telefone, endereco, cliente_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Cliente atualizado com sucesso!'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/clientes/<int:cliente_id>', methods=['DELETE'])
+def excluir_cliente(cliente_id):
+    """API para excluir cliente"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se cliente tem pedidos
+        pedidos_cliente = cursor.execute('''
+            SELECT COUNT(*) as total FROM pedidos 
+            WHERE cliente_nome = (SELECT nome FROM clientes WHERE id = ?)
+        ''', (cliente_id,)).fetchone()
+        
+        if pedidos_cliente['total'] > 0:
+            return jsonify({
+                'success': False, 
+                'message': f'Cliente possui {pedidos_cliente["total"]} pedidos e não pode ser excluído'
+            }), 400
+        
+        # Excluir cliente
+        cursor.execute('DELETE FROM clientes WHERE id = ?', (cliente_id,))
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Cliente não encontrado'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Cliente excluído com sucesso!'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/clientes/<int:cliente_id>/historico')
+def historico_cliente(cliente_id):
+    """API para obter histórico de pedidos do cliente"""
+    conn = get_db_connection()
+    
+    # Buscar dados do cliente
+    cliente = conn.execute('''
+        SELECT nome, telefone, endereco FROM clientes WHERE id = ?
+    ''', (cliente_id,)).fetchone()
+    
+    if not cliente:
+        return jsonify({'error': 'Cliente não encontrado'}), 404
+    
+    # Buscar pedidos do cliente
+    pedidos = conn.execute('''
+        SELECT * FROM pedidos 
+        WHERE cliente_nome = ?
+        ORDER BY hora_pedido DESC
+    ''', (cliente['nome'],)).fetchall()
+    
+    conn.close()
+    
+    pedidos_list = []
+    for pedido in pedidos:
+        pedidos_list.append({
+            'id': pedido['id'],
+            'valor_total': pedido['valor_total'],
+            'forma_pagamento': pedido['forma_pagamento'],
+            'data_pedido': pedido['data_pedido'],
+            'hora_pedido': pedido['hora_pedido'],
+            'eh_balcao': pedido['eh_balcao']
+        })
+    
+    return jsonify({
+        'cliente': {
+            'nome': cliente['nome'],
+            'telefone': cliente['telefone'],
+            'endereco': cliente['endereco']
+        },
+        'pedidos': pedidos_list
     })
 
 if __name__ == '__main__':
